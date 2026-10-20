@@ -1,3 +1,5 @@
+"""A `Result` type inspired by Rust: `Ok(value)` or `Err(error)`."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -16,7 +18,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, slots=True, init=False)
 class Ok[T]:
-    """A value that indicates success and which stores arbitrary data for the return value."""
+    """A value that indicates success and stores arbitrary data for the result."""
 
     ok_value: T
 
@@ -24,9 +26,11 @@ class Ok[T]:
         object.__setattr__(self, "ok_value", ok_value)
 
     def is_ok(self) -> Literal[True]:
+        """Return `True`, since this is an `Ok`."""
         return True
 
     def is_err(self) -> Literal[False]:
+        """Return `False`, since this is an `Ok`."""
         return False
 
     def ok(self) -> T:
@@ -83,40 +87,45 @@ class Ok[T]:
 
     def map[U](self, op: Callable[[T], U]) -> Ok[U]:
         """
-        The contained result is `Ok`, so return `Ok` with original value mapped to
-        a new value using the passed in function.
+        Return `Ok` with the value mapped through `op`.
+
+        The contained result is `Ok`, so the original value is passed to `op`.
         """
         return Ok(op(self.ok_value))
 
     async def map_async[U](self, op: Callable[[T], Awaitable[U]]) -> Ok[U]:
         """
-        The contained result is `Ok`, so return the result of `op` with the
-        original value passed in.
+        Return `Ok` with the value mapped through the async function `op`.
+
+        The contained result is `Ok`, so the original value is passed to `op`.
         """
         return Ok(await op(self.ok_value))
 
     def map_or[U](self, default: object, op: Callable[[T], U]) -> U:
         """
-        The contained result is `Ok`, so return the original value mapped to a new
-        value using the passed in function.
+        Return the value mapped through `op`, ignoring `default`.
+
+        The contained result is `Ok`, so the original value is passed to `op`.
         """
         return op(self.ok_value)
 
     def map_or_else[U](self, default_op: object, op: Callable[[T], U]) -> U:
         """
-        The contained result is `Ok`, so return original value mapped to
-        a new value using the passed in `op` function.
+        Return the value mapped through `op`, ignoring `default_op`.
+
+        The contained result is `Ok`, so the original value is passed to `op`.
         """
         return op(self.ok_value)
 
     def map_err(self, op: object) -> Ok[T]:
-        """The contained result is `Ok`, so return `Ok` with the original value."""
+        """Return `Ok` with the original value; `op` is not called."""
         return self
 
     def and_then[U, E](self, op: Callable[[T], Result[U, E]]) -> Result[U, E]:
         """
-        The contained result is `Ok`, so return the result of `op` with the
-        original value passed in.
+        Return the result of `op` called with the value.
+
+        The contained result is `Ok`, so the original value is passed to `op`.
         """
         return op(self.ok_value)
 
@@ -124,28 +133,29 @@ class Ok[T]:
         self, op: Callable[[T], Awaitable[Result[U, E]]]
     ) -> Result[U, E]:
         """
-        The contained result is `Ok`, so return the result of `op` with the
-        original value passed in.
+        Return the result of awaiting `op` called with the value.
+
+        The contained result is `Ok`, so the original value is passed to `op`.
         """
         return await op(self.ok_value)
 
     def or_else(self, op: object) -> Ok[T]:
-        """The contained result is `Ok`, so return `Ok` with the original value."""
+        """Return `Ok` with the original value; `op` is not called."""
         return self
 
     def inspect[E](self, op: Callable[[T], Any]) -> Result[T, E]:
-        """Calls a function with the contained value if `Ok`. Returns the original result."""
+        """Call `op` with the contained value and return the original result."""
         op(self.ok_value)
         return self
 
     def inspect_err[E](self, op: Callable[[E], Any]) -> Result[T, E]:
-        """Calls a function with the contained value if `Err`. Returns the original result."""
+        """Return the original result; `op` is only called for `Err`."""
         return self
 
 
 @dataclass(frozen=True, slots=True, init=False)
 class Err[E]:
-    """A value that signifies failure and which stores arbitrary data for the error."""
+    """A value that signifies failure and stores arbitrary data for the error."""
 
     err_value: E
 
@@ -153,9 +163,11 @@ class Err[E]:
         object.__setattr__(self, "err_value", err_value)
 
     def is_ok(self) -> Literal[False]:
+        """Return `False`, since this is an `Err`."""
         return False
 
     def is_err(self) -> Literal[True]:
+        """Return `True`, since this is an `Err`."""
         return True
 
     def ok(self) -> None:
@@ -183,7 +195,7 @@ class Err[E]:
         return self.err_value
 
     def expect(self, message: str) -> NoReturn:
-        """Raises an `UnwrapError`."""
+        """Raise an `UnwrapError` with `message`."""
         exc = UnwrapError(
             self,
             f"{message}: {self.err_value!r}",
@@ -197,7 +209,7 @@ class Err[E]:
         return self.err_value
 
     def unwrap(self) -> NoReturn:
-        """Raises an `UnwrapError`."""
+        """Raise an `UnwrapError`."""
         exc = UnwrapError(
             self,
             f"Called `Result.unwrap()` on an `Err` value: {self.err_value!r}",
@@ -215,14 +227,11 @@ class Err[E]:
         return default
 
     def unwrap_or_else[T](self, op: Callable[[E], T]) -> T:
-        """
-        The contained result is ``Err``, so return the result of applying
-        ``op`` to the error value.
-        """
+        """Return the result of applying `op` to the error value."""
         return op(self.err_value)
 
     def unwrap_or_raise[TBE: BaseException](self, e: type[TBE]) -> NoReturn:
-        """The contained result is ``Err``, so raise the exception with the value."""
+        """Raise the exception `e`, constructed from the error value."""
         raise e(self.err_value)
 
     def map(self, op: object) -> Err[E]:
@@ -230,10 +239,7 @@ class Err[E]:
         return self
 
     async def map_async(self, op: object) -> Err[E]:
-        """
-        The contained result is `Ok`, so return the result of `op` with the
-        original value passed in.
-        """
+        """Return `Err` with the same value; `op` is not called."""
         return self
 
     def map_or[U](self, default: U, op: object) -> U:
@@ -245,33 +251,27 @@ class Err[E]:
         return default_op()
 
     def map_err[F](self, op: Callable[[E], F]) -> Err[F]:
-        """
-        The contained result is `Err`, so return `Err` with original error mapped to
-        a new value using the passed in function.
-        """
+        """Return `Err` with the error value mapped through `op`."""
         return Err(op(self.err_value))
 
     def and_then(self, op: object) -> Err[E]:
-        """The contained result is `Err`, so return `Err` with the original value."""
+        """Return `Err` with the original value; `op` is not called."""
         return self
 
     async def and_then_async(self, op: object) -> Err[E]:
-        """The contained result is `Err`, so return `Err` with the original value."""
+        """Return `Err` with the original value; `op` is not called."""
         return self
 
     def or_else[T, F](self, op: Callable[[E], Result[T, F]]) -> Result[T, F]:
-        """
-        The contained result is `Err`, so return the result of `op` with the
-        original value passed in.
-        """
+        """Return the result of `op` called with the error value."""
         return op(self.err_value)
 
     def inspect[T](self, op: Callable[[T], Any]) -> Result[T, E]:
-        """Calls a function with the contained value if `Ok`. Returns the original result."""
+        """Return the original result; `op` is only called for `Ok`."""
         return self
 
     def inspect_err[T](self, op: Callable[[E], Any]) -> Result[T, E]:
-        """Calls a function with the contained value if `Err`. Returns the original result."""
+        """Call `op` with the error value and return the original result."""
         op(self.err_value)
         return self
 
@@ -287,7 +287,8 @@ type Result[T, E] = Ok[T] | Err[E]
 
 """
 A type to use in `isinstance` checks.
-This is purely for convenience sake, as you could also just write `isinstance(res, (Ok, Err))
+This is purely for convenience sake, as you could also just write
+`isinstance(res, (Ok, Err))`.
 """
 OkErr: Final = (Ok, Err)
 

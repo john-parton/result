@@ -1,3 +1,5 @@
+"""A `Result` type inspired by Rust: `Ok(value)` or `Err(error)`."""
+
 from .result import (
     Err,
     Ok,
