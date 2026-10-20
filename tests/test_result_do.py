@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import pytest
 
 from result import Err, Ok, Result, do, do_async
@@ -63,7 +62,8 @@ async def test_result_do_async_one_value() -> None:
     """This is a strange case where Python creates a regular
     (non async) generator despite an `await` inside the generator expression.
     For convenience, although this works with regular `do()`, we want to support this
-    with `do_async()` as well."""
+    with `do_async()` as well.
+    """
 
     async def aget_resx(is_suc: bool) -> Result[str, int]:
         return Ok("hello") if is_suc else Err(1)

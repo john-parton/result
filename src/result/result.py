@@ -3,24 +3,18 @@ from __future__ import annotations
 import functools
 import inspect
 import sys
-from warnings import warn
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator, Iterator
 from typing import (
     Any,
-    AsyncGenerator,
-    Awaitable,
-    Callable,
     Final,
-    Generator,
     Generic,
-    Iterator,
     Literal,
     NoReturn,
     ParamSpec,
-    Type,
     TypeAlias,
     TypeVar,
-    Union,
 )
+from warnings import warn
 
 if sys.version_info >= (3, 13):
     from typing import TypeIs
@@ -52,12 +46,12 @@ class Ok(Generic[T]):
         self._value = value
 
     def __repr__(self) -> str:
-        return "Ok({})".format(repr(self._value))
+        return f"Ok({self._value!r})"
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Ok) and self._value == other._value
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not (self == other)
 
     def __hash__(self) -> int:
@@ -79,7 +73,7 @@ class Ok(Generic[T]):
         """
         Return `None`.
         """
-        return None
+        return
 
     @property
     def value(self) -> T:
@@ -91,7 +85,7 @@ class Ok(Generic[T]):
         """
         warn(
             "Accessing `.value` on Result type is deprecated, please use "
-            + "`.ok_value` or `.err_value` instead",
+            "`.ok_value` or `.err_value` instead",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -249,12 +243,12 @@ class Err(Generic[E]):
         self._value = value
 
     def __repr__(self) -> str:
-        return "Err({})".format(repr(self._value))
+        return f"Err({self._value!r})"
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Err) and self._value == other._value
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not (self == other)
 
     def __hash__(self) -> int:
@@ -270,7 +264,7 @@ class Err(Generic[E]):
         """
         Return `None`.
         """
-        return None
+        return
 
     def err(self) -> E:
         """
@@ -288,7 +282,7 @@ class Err(Generic[E]):
         """
         warn(
             "Accessing `.value` on Result type is deprecated, please use "
-            + "`.ok_value` or '.err_value' instead",
+            "`.ok_value` or '.err_value' instead",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -350,7 +344,7 @@ class Err(Generic[E]):
         """
         return op(self._value)
 
-    def unwrap_or_raise(self, e: Type[TBE]) -> NoReturn:
+    def unwrap_or_raise(self, e: type[TBE]) -> NoReturn:
         """
         The contained result is ``Err``, so raise the exception with the value.
         """
@@ -428,7 +422,7 @@ A simple `Result` type inspired by Rust.
 Not all methods (https://doc.rust-lang.org/std/result/enum.Result.html)
 have been implemented, only the ones that make sense in the Python context.
 """
-Result: TypeAlias = Union[Ok[T], Err[E]]
+Result: TypeAlias = Ok[T] | Err[E]
 
 """
 A type to use in `isinstance` checks.
@@ -463,7 +457,7 @@ class UnwrapError(Exception):
 
 
 def as_result(
-    *exceptions: Type[TBE],
+    *exceptions: type[TBE],
 ) -> Callable[[Callable[P, R]], Callable[P, Result[R, TBE]]]:
     """
     Make a decorator to turn a function into one that returns a ``Result``.
@@ -495,7 +489,7 @@ def as_result(
 
 
 def as_async_result(
-    *exceptions: Type[TBE],
+    *exceptions: type[TBE],
 ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[Result[R, TBE]]]]:
     """
     Make a decorator to turn an async function into one that returns a ``Result``.
@@ -564,7 +558,6 @@ def is_err(result: Result[T, E]) -> TypeIs[Err[E]]:
 def do(gen: Generator[Result[T, E], None, None]) -> Result[T, E]:
     """Do notation for Result (syntactic sugar for sequence of `and_then()` calls).
 
-
     Usage:
 
     ``` rust
@@ -607,7 +600,7 @@ def do(gen: Generator[Result[T, E], None, None]) -> Result[T, E]:
 
 
 async def do_async(
-    gen: Union[Generator[Result[T, E], None, None], AsyncGenerator[Result[T, E], None]],
+    gen: Generator[Result[T, E], None, None] | AsyncGenerator[Result[T, E], None],
 ) -> Result[T, E]:
     """Async version of do. Example:
 
@@ -660,8 +653,7 @@ async def do_async(
     try:
         if isinstance(gen, AsyncGenerator):
             return await gen.__anext__()
-        else:
-            return next(gen)
+        return next(gen)
     except DoException as e:
         out: Err[E] = e.err  # type: ignore
         return out
