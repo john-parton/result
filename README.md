@@ -17,6 +17,9 @@ original project: the design and most of the API here come from their work.
 This fork makes breaking changes; see
 [Changes from rustedpy/result](#changes-from-rustedpyresult) below.
 
+LLMs (GitHub Copilot) were used to help write tests and clean up
+documentation in this fork.
+
 ## Changes from rustedpy/result
 
 Migrating from upstream:
@@ -143,6 +146,91 @@ Not all methods
 implemented, only the ones that make sense in the Python context.
 All of this in a package allowing easier handling of values that can
 be OK or not, without resorting to custom exceptions.
+
+## Why use Result?
+
+The most compelling reason is that exceptions are a non-local jump. A `raise`
+transfers control to whichever handler up the call stack happens to match,
+skipping everything in between, and nothing in a function's signature says it
+can happen. That undermines
+[structured programming](https://en.wikipedia.org/wiki/Structured_programming),
+where control flow is built from sequence, selection and iteration, and you
+can read a function and see every way it can continue.
+
+Returning failures as values keeps control flow local and visible. It is
+easier to reason about, and the type checker will not let you touch the
+success value without dealing with the failure case, so it is harder to miss
+a nasty edge case.
+
+Here is a surprising effect of using exceptions for flow control:
+
+``` python
+def read_port(raw: str) -> int:
+    port = int(raw)  # ValueError if not a number
+    if not 0 < port < 65536:
+        raise ValueError(f"port out of range: {port}")
+    return port
+
+
+def configure(env: dict[str, str]) -> Config:
+    return Config(host=env["HOST"], port=read_port(env["PORT"]))
+
+
+try:
+    config = configure(os.environ)
+except ValueError as e:
+    log.error("bad port: %s", e)
+    config = DEFAULT_CONFIG
+```
+
+If `PORT` is not set, `env["PORT"]` raises a `KeyError`. That is not a
+`ValueError`, so it jumps straight past the handler and crashes the program,
+and nothing in the signatures warned you. In the other direction, any
+`ValueError`, even one that has nothing to do with the port, is reported as
+`bad port`.
+
+With `Result`, every failure the caller needs to handle is part of the
+return type, and the control flow reads top to bottom:
+
+``` python
+def read_port(raw: str) -> Result[int, str]:
+    try:
+        port = int(raw)
+    except ValueError:
+        return Err(f"not a number: {raw!r}")
+    if not (0 < port < 65536):
+        return Err(f"port out of range: {port}")
+    return Ok(port)
+
+
+def configure(env: dict[str, str]) -> Result[Config, str]:
+    if "HOST" not in env:
+        return Err("HOST is not set")
+    if "PORT" not in env:
+        return Err("PORT is not set")
+    match read_port(env["PORT"]):
+        case Err() as err:
+            return err
+        case Ok(port):
+            return Ok(Config(host=env["HOST"], port=port))
+
+
+match configure(os.environ):
+    case Ok(config):
+        ...
+    case Err(reason):
+        log.error("bad config: %s", reason)
+        config = DEFAULT_CONFIG
+```
+
+It is a little longer, but the missing `PORT` is now an ordinary `Err` that
+is handled in the same place as the others, and the one `try` is narrow: it
+wraps only `int()`, the call that can raise (see
+[Handling exceptions](#handling-exceptions)).
+
+This does not mean exceptions are never appropriate. Use `Result` for
+expected failures that callers should handle, and leave exceptions for bugs
+and truly unexpected conditions.
 
 ## API
 
