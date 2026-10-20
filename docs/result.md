@@ -60,9 +60,9 @@ Usage:
 ``` python
 r: Result[int, str] = get_a_result()
 if is_ok(r):
-     r   # r is of type Ok[int]
+    r  # r is of type Ok[int]
 elif is_err(r):
-     r   # r is of type Err[str]
+    r  # r is of type Err[str]
 ``` 
 
 
@@ -83,9 +83,9 @@ Usage:
 ``` python
 r: Result[int, str] = get_a_result()
 if is_ok(r):
-     r   # r is of type Ok[int]
+    r  # r is of type Ok[int]
 elif is_err(r):
-     r   # r is of type Err[str]
+    r  # r is of type Err[str]
 ``` 
 
 
@@ -142,11 +142,11 @@ Async version of do. Example:
 
 ``` python
 final_result: Result[float, int] = await do_async(
-     Ok(len(x) + int(y) + z)
-         for x in await get_async_result_1()
-         for y in await get_async_result_2()
-         for z in get_sync_result_3()
-     )
+    Ok(len(x) + int(y) + z)
+    for x in await get_async_result_1()
+    for y in await get_async_result_2()
+    for z in get_sync_result_3()
+)
 ``` 
 
 NOTE: Python makes generators async in a counter-intuitive way. 

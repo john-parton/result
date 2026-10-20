@@ -51,27 +51,27 @@ def test_repr() -> None:
 
 
 def test_ok_value() -> None:
-    res = Ok('haha')
-    assert res.ok_value == 'haha'
+    res = Ok("haha")
+    assert res.ok_value == "haha"
 
 
 def test_err_value() -> None:
-    res = Err('haha')
-    assert res.err_value == 'haha'
+    res = Err("haha")
+    assert res.err_value == "haha"
 
 
 def test_ok() -> None:
-    res = Ok('haha')
+    res = Ok("haha")
     assert res.is_ok() is True
     assert res.is_err() is False
-    assert res.ok_value == 'haha'
+    assert res.ok_value == "haha"
 
 
 def test_err() -> None:
-    res = Err(':(')
+    res = Err(":(")
     assert res.is_ok() is False
     assert res.is_err() is True
-    assert res.err_value == ':('
+    assert res.err_value == ":("
 
 
 def test_err_value_is_exception() -> None:
@@ -90,115 +90,115 @@ def test_err_value_is_exception() -> None:
 
 
 def test_ok_method() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.ok() == 'yay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.ok() == "yay"
     assert n.ok() is None  # type: ignore[func-returns-value]
 
 
 def test_err_method() -> None:
-    o = Ok('yay')
-    n = Err('nay')
+    o = Ok("yay")
+    n = Err("nay")
     assert o.err() is None  # type: ignore[func-returns-value]
-    assert n.err() == 'nay'
+    assert n.err() == "nay"
 
 
 def test_expect() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.expect('failure') == 'yay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.expect("failure") == "yay"
     with pytest.raises(UnwrapError):
-        n.expect('failure')
+        n.expect("failure")
 
 
 def test_expect_err() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert n.expect_err('hello') == 'nay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert n.expect_err("hello") == "nay"
     with pytest.raises(UnwrapError):
-        o.expect_err('hello')
+        o.expect_err("hello")
 
 
 def test_unwrap() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.unwrap() == 'yay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.unwrap() == "yay"
     with pytest.raises(UnwrapError):
         n.unwrap()
 
 
 def test_unwrap_err() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert n.unwrap_err() == 'nay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert n.unwrap_err() == "nay"
     with pytest.raises(UnwrapError):
         o.unwrap_err()
 
 
 def test_unwrap_or() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.unwrap_or('some_default') == 'yay'
-    assert n.unwrap_or('another_default') == 'another_default'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.unwrap_or("some_default") == "yay"
+    assert n.unwrap_or("another_default") == "another_default"
 
 
 def test_unwrap_or_else() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.unwrap_or_else(str.upper) == 'yay'
-    assert n.unwrap_or_else(str.upper) == 'NAY'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.unwrap_or_else(str.upper) == "yay"
+    assert n.unwrap_or_else(str.upper) == "NAY"
 
 
 def test_unwrap_or_raise() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.unwrap_or_raise(ValueError) == 'yay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.unwrap_or_raise(ValueError) == "yay"
     with pytest.raises(ValueError) as exc_info:
         n.unwrap_or_raise(ValueError)
-    assert exc_info.value.args == ('nay',)
+    assert exc_info.value.args == ("nay",)
 
 
 def test_map() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.map(str.upper).ok() == 'YAY'
-    assert n.map(str.upper).err() == 'nay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.map(str.upper).ok() == "YAY"
+    assert n.map(str.upper).err() == "nay"
 
     num = Ok(3)
     errnum = Err(2)
-    assert num.map(str).ok() == '3'
+    assert num.map(str).ok() == "3"
     assert errnum.map(str).err() == 2
 
 
 def test_map_or() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.map_or('hay', str.upper) == 'YAY'
-    assert n.map_or('hay', str.upper) == 'hay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.map_or("hay", str.upper) == "YAY"
+    assert n.map_or("hay", str.upper) == "hay"
 
     num = Ok(3)
     errnum = Err(2)
-    assert num.map_or('-1', str) == '3'
-    assert errnum.map_or('-1', str) == '-1'
+    assert num.map_or("-1", str) == "3"
+    assert errnum.map_or("-1", str) == "-1"
 
 
 def test_map_or_else() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.map_or_else(lambda: 'hay', str.upper) == 'YAY'
-    assert n.map_or_else(lambda: 'hay', str.upper) == 'hay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.map_or_else(lambda: "hay", str.upper) == "YAY"
+    assert n.map_or_else(lambda: "hay", str.upper) == "hay"
 
     num = Ok(3)
     errnum = Err(2)
-    assert num.map_or_else(lambda: '-1', str) == '3'
-    assert errnum.map_or_else(lambda: '-1', str) == '-1'
+    assert num.map_or_else(lambda: "-1", str) == "3"
+    assert errnum.map_or_else(lambda: "-1", str) == "-1"
 
 
 def test_map_err() -> None:
-    o = Ok('yay')
-    n = Err('nay')
-    assert o.map_err(str.upper).ok() == 'yay'
-    assert n.map_err(str.upper).err() == 'NAY'
+    o = Ok("yay")
+    n = Err("nay")
+    assert o.map_err(str.upper).ok() == "yay"
+    assert n.map_err(str.upper).err() == "NAY"
 
 
 def test_and_then() -> None:
@@ -245,8 +245,12 @@ def test_inspect_regular_fn() -> None:
 
 @pytest.mark.asyncio
 async def test_and_then_async() -> None:
-    assert (await (await Ok(2).and_then_async(sq_async)).and_then_async(sq_async)).ok() == 16
-    assert (await (await Ok(2).and_then_async(sq_async)).and_then_async(to_err_async)).err() == 4
+    assert (
+        await (await Ok(2).and_then_async(sq_async)).and_then_async(sq_async)
+    ).ok() == 16
+    assert (
+        await (await Ok(2).and_then_async(sq_async)).and_then_async(to_err_async)
+    ).err() == 4
     assert (
         await (await Ok(2).and_then_async(to_err_async)).and_then_async(to_err_async)
     ).err() == 2
@@ -263,14 +267,14 @@ async def test_map_async() -> None:
     async def str_async(x: int) -> str:
         return str(x)
 
-    o = Ok('yay')
-    n = Err('nay')
-    assert (await o.map_async(str_upper_async)).ok() == 'YAY'
-    assert (await n.map_async(str_upper_async)).err() == 'nay'
+    o = Ok("yay")
+    n = Err("nay")
+    assert (await o.map_async(str_upper_async)).ok() == "YAY"
+    assert (await n.map_async(str_upper_async)).err() == "nay"
 
     num = Ok(3)
     errnum = Err(2)
-    assert (await num.map_async(str_async)).ok() == '3'
+    assert (await num.map_async(str_async)).ok() == "3"
     assert (await errnum.map_async(str_async)).err() == 2
 
 
@@ -287,15 +291,15 @@ def test_or_else() -> None:
 
 
 def test_isinstance_result_type() -> None:
-    o = Ok('yay')
-    n = Err('nay')
+    o = Ok("yay")
+    n = Err("nay")
     assert isinstance(o, OkErr)
     assert isinstance(n, OkErr)
     assert not isinstance(1, OkErr)
 
 
 def test_error_context() -> None:
-    n = Err('nay')
+    n = Err("nay")
     with pytest.raises(UnwrapError) as exc_info:
         n.unwrap()
     exc = exc_info.value
@@ -306,8 +310,8 @@ def test_slots() -> None:
     """
     Ok and Err have slots, so assigning arbitrary attributes fails.
     """
-    o = Ok('yay')
-    n = Err('nay')
+    o = Ok("yay")
+    n = Err("nay")
     with pytest.raises(AttributeError):
         o.some_arbitrary_attribute = 1  # type: ignore[attr-defined]
     with pytest.raises(AttributeError):

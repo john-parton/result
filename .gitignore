@@ -8,8 +8,7 @@ dist/
 *.egg-info/
 build/
 .idea/
-.mypy_cache/
-venv/
-/.tox/
-.vscode
+.venv/
+.ruff_cache/
+.pyrefly_cache/
 pyrightconfig.json

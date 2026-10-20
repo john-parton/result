@@ -38,15 +38,16 @@ def get_user_by_email(email: str) -> Tuple[Optional[User], Optional[str]]:
     Return the user instance or an error message.
     """
     if not user_exists(email):
-        return None, 'User does not exist'
+        return None, "User does not exist"
     if not user_active(email):
-        return None, 'User is inactive'
+        return None, "User is inactive"
     user = get_user(email)
     return user, None
 
-user, reason = get_user_by_email('ueli@example.com')
+
+user, reason = get_user_by_email("ueli@example.com")
 if user is None:
-    raise RuntimeError('Could not fetch user: %s' % reason)
+    raise RuntimeError("Could not fetch user: %s" % reason)
 else:
     do_something(user)
 ```
@@ -56,16 +57,18 @@ To something like this:
 ``` python
 from result import Ok, Err, Result, is_ok, is_err
 
+
 def get_user_by_email(email: str) -> Result[User, str]:
     """
     Return the user instance or an error message.
     """
     if not user_exists(email):
-        return Err('User does not exist')
+        return Err("User does not exist")
     if not user_active(email):
-        return Err('User is inactive')
+        return Err("User is inactive")
     user = get_user(email)
     return Ok(user)
+
 
 user_result = get_user_by_email(email)
 if is_ok(user_result):
@@ -73,7 +76,7 @@ if is_ok(user_result):
     do_something(user_result.ok_value)
 else:
     # type(user_result.err_value) == str
-    raise RuntimeError('Could not fetch user: %s' % user_result.err_value)
+    raise RuntimeError("Could not fetch user: %s" % user_result.err_value)
 ```
 
 Note that `.ok_value` exists only on an instance of `Ok` and
@@ -85,10 +88,12 @@ elegant `match` statement as well:
 ``` python
 from result import Result, Ok, Err
 
+
 def divide(a: int, b: int) -> Result[int, str]:
     if b == 0:
         return Err("Cannot divide by zero")
     return Ok(a // b)
+
 
 values = [(10, 0), (10, 5)]
 for a, b in values:
@@ -318,6 +323,7 @@ def f(value: int) -> int:
     else:
         return value  # becomes Ok
 
+
 res = f(0)  # Err[ValueError()]
 res = f(1)  # Err[IndexError()]
 res = f(2)  # raises KeyError
@@ -353,11 +359,7 @@ Instead of `x <- Ok(1)` we write `for x in Ok(1)`. Since the syntax is
 generator-based, the final result must be the first line, not the last.
 
 ``` python
-final_result: Result[int, str] = do(
-    Ok(x + y)
-    for x in Ok(1)
-    for y in Ok(2)
-)
+final_result: Result[int, str] = do(Ok(x + y) for x in Ok(1) for y in Ok(2))
 ```
 
 Note that if you exclude the type annotation,
@@ -397,11 +399,7 @@ You can use `do()` with awaited values as follows:
 async def process_data(data) -> Result[int, str]:
     res1 = await get_result_1(data)
     res2 = await get_result_2(data)
-    return do(
-        Ok(x + y)
-        for x in res1
-        for y in res2
-    )
+    return do(Ok(x + y) for x in res1 for y in res2)
 ```
 
 However, if you want to await something inside the expression, use
@@ -410,9 +408,7 @@ However, if you want to await something inside the expression, use
 ``` python
 async def process_data(data) -> Result[int, str]:
     return do_async(
-        Ok(x + y)
-        for x in await get_result_1(data)
-        for y in await get_result_2(data)
+        Ok(x + y) for x in await get_result_1(data) for y in await get_result_2(data)
     )
 ```
 
@@ -428,26 +424,19 @@ instead.
 
 ## Contributing
 
-These steps should work on any Unix-based system (Linux, macOS, etc) with Python
-and `make` installed. On Windows, you will need to refer to the Python
-documentation (linked below) and reference the `Makefile` for commands to run
-from the non-unix shell you're using on Windows.
+Requires [uv](https://docs.astral.sh/uv/).
 
-1. Setup and activate a virtual environment. See [Python docs][pydocs-venv] for more
-   information about virtual environments and setup.
-2. Run `make install` to install dependencies
-3. Switch to a new git branch and make your changes
-4. Test your changes:
-  - `make test`
-  - `make lint`
-  - You can also start a Python REPL and import `result`
-5. Update documentation
+1. Run `uv sync` to create the virtualenv and install dependencies
+2. Switch to a new git branch and make your changes
+3. Test your changes:
+  - `uv run pytest`
+  - `uv run ruff check` and `uv run ruff format --check`
+  - `uv run pyrefly check`
+  - You can also start a Python REPL (`uv run python`) and import `result`
+4. Update documentation
   - Edit any relevant docstrings, markdown files
-  - Run `make docs`
-6. Add an entry to the [changelog](./CHANGELOG.md)
-5. Git commit all your changes and create a new PR.
-
-[pydocs-venv]: https://docs.python.org/3/library/venv.html
+5. Add an entry to the [changelog](./CHANGELOG.md)
+6. Git commit all your changes and create a new PR.
 
 ## FAQ
 
@@ -464,9 +453,13 @@ else:
     reveal_type(result)  # "result.result.Err[builtins.str]"
 
 if result.is_ok():
-    reveal_type(result)  # "Union[result.result.Ok[builtins.int], result.result.Err[builtins.str]]"
+    reveal_type(
+        result
+    )  # "Union[result.result.Ok[builtins.int], result.result.Err[builtins.str]]"
 else:
-    reveal_type(result)  # "Union[result.result.Ok[builtins.int], result.result.Err[builtins.str]]"
+    reveal_type(
+        result
+    )  # "Union[result.result.Ok[builtins.int], result.result.Err[builtins.str]]"
 ```
 
 -   **Why do I get the "Cannot infer type argument" error with MyPy?**

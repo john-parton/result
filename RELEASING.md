@@ -11,7 +11,7 @@ export GPG={YOUR GPG}
 
 2) Update version numbers to match the version being released:
 ```
-vim -p src/result/__init__.py CHANGELOG.md
+vim -p pyproject.toml src/result/__init__.py CHANGELOG.md
 ```
 
 3) Update diff link in CHANGELOG.md ([see example][diff-link-update-pr-example]):
@@ -21,7 +21,7 @@ vim CHANGELOG.md
 
 4) Do a signed commit and signed tag of the release:
 ```
-git add src/result/__init__.py CHANGELOG.md
+git add pyproject.toml uv.lock src/result/__init__.py CHANGELOG.md
 git commit -S${GPG} -m "Release v${VERSION}"
 git tag -u ${GPG} -m "Release v${VERSION}" v${VERSION}
 ```
@@ -29,12 +29,12 @@ git tag -u ${GPG} -m "Release v${VERSION}" v${VERSION}
 5) Build source and binary distributions:
 ```
 rm -rf ./dist
-python3 -m build
+uv build
 ```
 
 6) Upload package to PyPI:
 ```
-twine upload dist/result-${VERSION}*
+uv publish dist/result-${VERSION}*
 git push
 git push --tags
 ```
@@ -45,7 +45,7 @@ git push --tags
 
 8) Update version number to next dev version (for example after `v0.9.0` this should be set to `0.10.0.dev0`:
 ```
-vim -p src/result/__init__.py
+vim -p pyproject.toml src/result/__init__.py
 ```
 
 [diff-link-update-pr-example]: https://github.com/rustedpy/result/pull/77/files

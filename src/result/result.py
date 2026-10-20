@@ -15,17 +15,17 @@ from typing import (
     Iterator,
     Literal,
     NoReturn,
+    ParamSpec,
     Type,
+    TypeAlias,
     TypeVar,
     Union,
 )
 
-from typing_extensions import TypeIs
-
-if sys.version_info >= (3, 10):
-    from typing import ParamSpec, TypeAlias
+if sys.version_info >= (3, 13):
+    from typing import TypeIs
 else:
-    from typing_extensions import ParamSpec, TypeAlias
+    from typing_extensions import TypeIs
 
 
 T = TypeVar("T", covariant=True)  # Success type
@@ -153,9 +153,7 @@ class Ok(Generic[T]):
         """
         return Ok(op(self._value))
 
-    async def map_async(
-        self, op: Callable[[T], Awaitable[U]]
-    ) -> Ok[U]:
+    async def map_async(self, op: Callable[[T], Awaitable[U]]) -> Ok[U]:
         """
         The contained result is `Ok`, so return the result of `op` with the
         original value passed in
@@ -511,7 +509,7 @@ def as_async_result(
         raise TypeError("as_result() requires one or more exception types")
 
     def decorator(
-        f: Callable[P, Awaitable[R]]
+        f: Callable[P, Awaitable[R]],
     ) -> Callable[P, Awaitable[Result[R, TBE]]]:
         """
         Decorator to turn a function into one that returns a ``Result``.
@@ -609,7 +607,7 @@ def do(gen: Generator[Result[T, E], None, None]) -> Result[T, E]:
 
 
 async def do_async(
-    gen: Union[Generator[Result[T, E], None, None], AsyncGenerator[Result[T, E], None]]
+    gen: Union[Generator[Result[T, E], None, None], AsyncGenerator[Result[T, E], None]],
 ) -> Result[T, E]:
     """Async version of do. Example:
 
