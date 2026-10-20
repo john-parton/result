@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
 import pytest
 
 from result import Err, Ok, OkErr, Result, UnwrapError, as_async_result, as_result
@@ -9,13 +7,13 @@ from result import Err, Ok, OkErr, Result, UnwrapError, as_async_result, as_resu
 
 def test_ok_factories() -> None:
     instance = Ok(1)
-    assert instance._value == 1
+    assert instance.ok_value == 1
     assert instance.is_ok() is True
 
 
 def test_err_factories() -> None:
     instance = Err(2)
-    assert instance._value == 2
+    assert instance.err_value == 2
     assert instance.is_err() is True
 
 
@@ -25,7 +23,7 @@ def test_eq() -> None:
     assert Ok(1) != Err(1)
     assert Ok(1) != Ok(2)
     assert Err(1) != Err(2)
-    assert not (Ok(1) != Ok(1))
+    assert Ok(1) == Ok(1)
     assert Ok(1) != "abc"
     assert Ok("0") != Ok(0)
 
@@ -37,17 +35,9 @@ def test_hash() -> None:
 
 
 def test_repr() -> None:
-    """
-    ``repr()`` returns valid code if the wrapped value's ``repr()`` does as well.
-    """
-    o = Ok(123)
-    n = Err(-1)
-
-    assert repr(o) == "Ok(123)"
-    assert o == eval(repr(o))
-
-    assert repr(n) == "Err(-1)"
-    assert n == eval(repr(n))
+    """``repr()`` is the dataclass repr, naming the field."""
+    assert repr(Ok(123)) == "Ok(ok_value=123)"
+    assert repr(Err(-1)) == "Err(err_value=-1)"
 
 
 def test_ok_value() -> None:
@@ -215,7 +205,8 @@ def test_and_then() -> None:
 
 def test_inspect() -> None:
     oks: list[int] = []
-    add_to_oks: Callable[[int], None] = lambda x: oks.append(x)
+    def add_to_oks(x: int) -> None:
+        return oks.append(x)
 
     assert Ok(2).inspect(add_to_oks) == Ok(2)
     assert Err("e").inspect(add_to_oks) == Err("e")
@@ -224,7 +215,8 @@ def test_inspect() -> None:
 
 def test_inspect_err() -> None:
     errs: list[str] = []
-    add_to_errs: Callable[[str], None] = lambda x: errs.append(x)
+    def add_to_errs(x: str) -> None:
+        return errs.append(x)
 
     assert Ok(2).inspect_err(add_to_errs) == Ok(2)
     assert Err("e").inspect_err(add_to_errs) == Err("e")
@@ -307,9 +299,7 @@ def test_error_context() -> None:
 
 
 def test_slots() -> None:
-    """
-    Ok and Err have slots, so assigning arbitrary attributes fails.
-    """
+    """Ok and Err have slots, so assigning arbitrary attributes fails."""
     o = Ok("yay")
     n = Err("nay")
     with pytest.raises(AttributeError):
@@ -319,9 +309,7 @@ def test_slots() -> None:
 
 
 def test_as_result() -> None:
-    """
-    ``as_result()`` turns functions into ones that return a ``Result``.
-    """
+    """``as_result()`` turns functions into ones that return a ``Result``."""
 
     @as_result(ValueError)
     def good(value: int) -> int:
@@ -341,9 +329,7 @@ def test_as_result() -> None:
 
 
 def test_as_result_other_exception() -> None:
-    """
-    ``as_result()`` only catches the specified exceptions.
-    """
+    """``as_result()`` only catches the specified exceptions."""
 
     @as_result(ValueError)
     def f() -> int:
@@ -354,9 +340,7 @@ def test_as_result_other_exception() -> None:
 
 
 def test_as_result_invalid_usage() -> None:
-    """
-    Invalid use of ``as_result()`` raises reasonable errors.
-    """
+    """Invalid use of ``as_result()`` raises reasonable errors."""
     message = "requires one or more exception types"
 
     with pytest.raises(TypeError, match=message):
@@ -373,9 +357,7 @@ def test_as_result_invalid_usage() -> None:
 
 
 def test_as_result_type_checking() -> None:
-    """
-    The ``as_result()`` is a signature-preserving decorator.
-    """
+    """The ``as_result()`` is a signature-preserving decorator."""
 
     @as_result(ValueError)
     def f(a: int) -> int:
@@ -388,9 +370,7 @@ def test_as_result_type_checking() -> None:
 
 @pytest.mark.asyncio
 async def test_as_async_result() -> None:
-    """
-    ``as_async_result()`` turns functions into ones that return a ``Result``.
-    """
+    """``as_async_result()`` turns functions into ones that return a ``Result``."""
 
     @as_async_result(ValueError)
     async def good(value: int) -> int:
@@ -426,5 +406,7 @@ async def to_err_async(i: int) -> Result[int, int]:
 
 
 # Lambda versions of the same functions, just for test/type coverage
-sq_lambda: Callable[[int], Result[int, int]] = lambda i: Ok(i * i)
-to_err_lambda: Callable[[int], Result[int, int]] = lambda i: Err(i)
+def sq_lambda(i: int) -> Result[int, int]:
+    return Ok(i * i)
+def to_err_lambda(i: int) -> Result[int, int]:
+    return Err(i)

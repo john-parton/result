@@ -189,7 +189,7 @@ async def test_result_do_general_with_async_values_inline_error() -> None:
 
     with pytest.raises(TypeError) as excinfo:
         do(
-            Ok(len(x) + int(y) + z)
+            Ok(len(x) + int(y) + z)  # pyrefly: ignore[bad-argument-type]
             for x in await aget_resx(True)
             for y in await aget_resy(True)
             for z in get_resz(True)

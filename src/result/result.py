@@ -2,60 +2,29 @@ from __future__ import annotations
 
 import functools
 import inspect
-import sys
 from collections.abc import AsyncGenerator, Awaitable, Callable, Generator, Iterator
+from dataclasses import dataclass
 from typing import (
     Any,
     Final,
-    Generic,
     Literal,
     NoReturn,
-    ParamSpec,
-    TypeAlias,
-    TypeVar,
+    TypeIs,
 )
 from warnings import warn
 
-if sys.version_info >= (3, 13):
-    from typing import TypeIs
-else:
-    from typing_extensions import TypeIs
 
+@dataclass(frozen=True, slots=True, init=False)
+class Ok[T]:
+    """A value that indicates success and which stores arbitrary data for the return value."""
 
-T = TypeVar("T", covariant=True)  # Success type
-E = TypeVar("E", covariant=True)  # Error type
-U = TypeVar("U")
-F = TypeVar("F")
-P = ParamSpec("P")
-R = TypeVar("R")
-TBE = TypeVar("TBE", bound=BaseException)
+    ok_value: T
 
-
-class Ok(Generic[T]):
-    """
-    A value that indicates success and which stores arbitrary data for the return value.
-    """
-
-    __match_args__ = ("ok_value",)
-    __slots__ = ("_value",)
+    def __init__(self, ok_value: T, /) -> None:
+        object.__setattr__(self, "ok_value", ok_value)
 
     def __iter__(self) -> Iterator[T]:
-        yield self._value
-
-    def __init__(self, value: T) -> None:
-        self._value = value
-
-    def __repr__(self) -> str:
-        return f"Ok({self._value!r})"
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, Ok) and self._value == other._value
-
-    def __ne__(self, other: object) -> bool:
-        return not (self == other)
-
-    def __hash__(self) -> int:
-        return hash((True, self._value))
+        yield self.ok_value
 
     def is_ok(self) -> Literal[True]:
         return True
@@ -64,15 +33,11 @@ class Ok(Generic[T]):
         return False
 
     def ok(self) -> T:
-        """
-        Return the value.
-        """
-        return self._value
+        """Return the value."""
+        return self.ok_value
 
     def err(self) -> None:
-        """
-        Return `None`.
-        """
+        """Return `None`."""
         return
 
     @property
@@ -89,124 +54,95 @@ class Ok(Generic[T]):
             DeprecationWarning,
             stacklevel=2,
         )
-        return self._value
-
-    @property
-    def ok_value(self) -> T:
-        """
-        Return the inner value.
-        """
-        return self._value
+        return self.ok_value
 
     def expect(self, _message: str) -> T:
-        """
-        Return the value.
-        """
-        return self._value
+        """Return the value."""
+        return self.ok_value
 
     def expect_err(self, message: str) -> NoReturn:
-        """
-        Raise an UnwrapError since this type is `Ok`
-        """
+        """Raise an UnwrapError since this type is `Ok`."""
         raise UnwrapError(self, message)
 
     def unwrap(self) -> T:
-        """
-        Return the value.
-        """
-        return self._value
+        """Return the value."""
+        return self.ok_value
 
     def unwrap_err(self) -> NoReturn:
-        """
-        Raise an UnwrapError since this type is `Ok`
-        """
+        """Raise an UnwrapError since this type is `Ok`."""
         raise UnwrapError(self, "Called `Result.unwrap_err()` on an `Ok` value")
 
-    def unwrap_or(self, _default: U) -> T:
-        """
-        Return the value.
-        """
-        return self._value
+    def unwrap_or[U](self, _default: U) -> T:
+        """Return the value."""
+        return self.ok_value
 
     def unwrap_or_else(self, op: object) -> T:
-        """
-        Return the value.
-        """
-        return self._value
+        """Return the value."""
+        return self.ok_value
 
     def unwrap_or_raise(self, e: object) -> T:
-        """
-        Return the value.
-        """
-        return self._value
+        """Return the value."""
+        return self.ok_value
 
-    def map(self, op: Callable[[T], U]) -> Ok[U]:
+    def map[U](self, op: Callable[[T], U]) -> Ok[U]:
         """
         The contained result is `Ok`, so return `Ok` with original value mapped to
         a new value using the passed in function.
         """
-        return Ok(op(self._value))
+        return Ok(op(self.ok_value))
 
-    async def map_async(self, op: Callable[[T], Awaitable[U]]) -> Ok[U]:
+    async def map_async[U](self, op: Callable[[T], Awaitable[U]]) -> Ok[U]:
         """
         The contained result is `Ok`, so return the result of `op` with the
-        original value passed in
+        original value passed in.
         """
-        return Ok(await op(self._value))
+        return Ok(await op(self.ok_value))
 
-    def map_or(self, default: object, op: Callable[[T], U]) -> U:
+    def map_or[U](self, default: object, op: Callable[[T], U]) -> U:
         """
         The contained result is `Ok`, so return the original value mapped to a new
         value using the passed in function.
         """
-        return op(self._value)
+        return op(self.ok_value)
 
-    def map_or_else(self, default_op: object, op: Callable[[T], U]) -> U:
+    def map_or_else[U](self, default_op: object, op: Callable[[T], U]) -> U:
         """
         The contained result is `Ok`, so return original value mapped to
         a new value using the passed in `op` function.
         """
-        return op(self._value)
+        return op(self.ok_value)
 
     def map_err(self, op: object) -> Ok[T]:
-        """
-        The contained result is `Ok`, so return `Ok` with the original value
-        """
+        """The contained result is `Ok`, so return `Ok` with the original value."""
         return self
 
-    def and_then(self, op: Callable[[T], Result[U, E]]) -> Result[U, E]:
+    def and_then[U, E](self, op: Callable[[T], Result[U, E]]) -> Result[U, E]:
         """
         The contained result is `Ok`, so return the result of `op` with the
-        original value passed in
+        original value passed in.
         """
-        return op(self._value)
+        return op(self.ok_value)
 
-    async def and_then_async(
+    async def and_then_async[U, E](
         self, op: Callable[[T], Awaitable[Result[U, E]]]
     ) -> Result[U, E]:
         """
         The contained result is `Ok`, so return the result of `op` with the
-        original value passed in
+        original value passed in.
         """
-        return await op(self._value)
+        return await op(self.ok_value)
 
     def or_else(self, op: object) -> Ok[T]:
-        """
-        The contained result is `Ok`, so return `Ok` with the original value
-        """
+        """The contained result is `Ok`, so return `Ok` with the original value."""
         return self
 
-    def inspect(self, op: Callable[[T], Any]) -> Result[T, E]:
-        """
-        Calls a function with the contained value if `Ok`. Returns the original result.
-        """
-        op(self._value)
+    def inspect[E](self, op: Callable[[T], Any]) -> Result[T, E]:
+        """Calls a function with the contained value if `Ok`. Returns the original result."""
+        op(self.ok_value)
         return self
 
-    def inspect_err(self, op: Callable[[E], Any]) -> Result[T, E]:
-        """
-        Calls a function with the contained value if `Err`. Returns the original result.
-        """
+    def inspect_err[E](self, op: Callable[[E], Any]) -> Result[T, E]:
+        """Calls a function with the contained value if `Err`. Returns the original result."""
         return self
 
 
@@ -219,17 +155,18 @@ class DoException(Exception):
     we just return `self` (the Err).
     """
 
-    def __init__(self, err: Err[E]) -> None:
+    def __init__(self, err: Err[Any]) -> None:
         self.err = err
 
 
-class Err(Generic[E]):
-    """
-    A value that signifies failure and which stores arbitrary data for the error.
-    """
+@dataclass(frozen=True, slots=True, init=False)
+class Err[E]:
+    """A value that signifies failure and which stores arbitrary data for the error."""
 
-    __match_args__ = ("err_value",)
-    __slots__ = ("_value",)
+    err_value: E
+
+    def __init__(self, err_value: E, /) -> None:
+        object.__setattr__(self, "err_value", err_value)
 
     def __iter__(self) -> Iterator[NoReturn]:
         def _iter() -> Iterator[NoReturn]:
@@ -239,21 +176,6 @@ class Err(Generic[E]):
 
         return _iter()
 
-    def __init__(self, value: E) -> None:
-        self._value = value
-
-    def __repr__(self) -> str:
-        return f"Err({self._value!r})"
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, Err) and self._value == other._value
-
-    def __ne__(self, other: object) -> bool:
-        return not (self == other)
-
-    def __hash__(self) -> int:
-        return hash((False, self._value))
-
     def is_ok(self) -> Literal[False]:
         return False
 
@@ -261,16 +183,12 @@ class Err(Generic[E]):
         return True
 
     def ok(self) -> None:
-        """
-        Return `None`.
-        """
+        """Return `None`."""
         return
 
     def err(self) -> E:
-        """
-        Return the error.
-        """
-        return self._value
+        """Return the error."""
+        return self.err_value
 
     @property
     def value(self) -> E:
@@ -286,132 +204,99 @@ class Err(Generic[E]):
             DeprecationWarning,
             stacklevel=2,
         )
-        return self._value
-
-    @property
-    def err_value(self) -> E:
-        """
-        Return the inner value.
-        """
-        return self._value
+        return self.err_value
 
     def expect(self, message: str) -> NoReturn:
-        """
-        Raises an `UnwrapError`.
-        """
+        """Raises an `UnwrapError`."""
         exc = UnwrapError(
             self,
-            f"{message}: {self._value!r}",
+            f"{message}: {self.err_value!r}",
         )
-        if isinstance(self._value, BaseException):
-            raise exc from self._value
+        if isinstance(self.err_value, BaseException):
+            raise exc from self.err_value
         raise exc
 
     def expect_err(self, _message: str) -> E:
-        """
-        Return the inner value
-        """
-        return self._value
+        """Return the inner value."""
+        return self.err_value
 
     def unwrap(self) -> NoReturn:
-        """
-        Raises an `UnwrapError`.
-        """
+        """Raises an `UnwrapError`."""
         exc = UnwrapError(
             self,
-            f"Called `Result.unwrap()` on an `Err` value: {self._value!r}",
+            f"Called `Result.unwrap()` on an `Err` value: {self.err_value!r}",
         )
-        if isinstance(self._value, BaseException):
-            raise exc from self._value
+        if isinstance(self.err_value, BaseException):
+            raise exc from self.err_value
         raise exc
 
     def unwrap_err(self) -> E:
-        """
-        Return the inner value
-        """
-        return self._value
+        """Return the inner value."""
+        return self.err_value
 
-    def unwrap_or(self, default: U) -> U:
-        """
-        Return `default`.
-        """
+    def unwrap_or[U](self, default: U) -> U:
+        """Return `default`."""
         return default
 
-    def unwrap_or_else(self, op: Callable[[E], T]) -> T:
+    def unwrap_or_else[T](self, op: Callable[[E], T]) -> T:
         """
         The contained result is ``Err``, so return the result of applying
         ``op`` to the error value.
         """
-        return op(self._value)
+        return op(self.err_value)
 
-    def unwrap_or_raise(self, e: type[TBE]) -> NoReturn:
-        """
-        The contained result is ``Err``, so raise the exception with the value.
-        """
-        raise e(self._value)
+    def unwrap_or_raise[TBE: BaseException](self, e: type[TBE]) -> NoReturn:
+        """The contained result is ``Err``, so raise the exception with the value."""
+        raise e(self.err_value)
 
     def map(self, op: object) -> Err[E]:
-        """
-        Return `Err` with the same value
-        """
+        """Return `Err` with the same value."""
         return self
 
     async def map_async(self, op: object) -> Err[E]:
         """
         The contained result is `Ok`, so return the result of `op` with the
-        original value passed in
+        original value passed in.
         """
         return self
 
-    def map_or(self, default: U, op: object) -> U:
-        """
-        Return the default value
-        """
+    def map_or[U](self, default: U, op: object) -> U:
+        """Return the default value."""
         return default
 
-    def map_or_else(self, default_op: Callable[[], U], op: object) -> U:
-        """
-        Return the result of the default operation
-        """
+    def map_or_else[U](self, default_op: Callable[[], U], op: object) -> U:
+        """Return the result of the default operation."""
         return default_op()
 
-    def map_err(self, op: Callable[[E], F]) -> Err[F]:
+    def map_err[F](self, op: Callable[[E], F]) -> Err[F]:
         """
         The contained result is `Err`, so return `Err` with original error mapped to
         a new value using the passed in function.
         """
-        return Err(op(self._value))
+        return Err(op(self.err_value))
 
     def and_then(self, op: object) -> Err[E]:
-        """
-        The contained result is `Err`, so return `Err` with the original value
-        """
+        """The contained result is `Err`, so return `Err` with the original value."""
         return self
 
     async def and_then_async(self, op: object) -> Err[E]:
-        """
-        The contained result is `Err`, so return `Err` with the original value
-        """
+        """The contained result is `Err`, so return `Err` with the original value."""
         return self
 
-    def or_else(self, op: Callable[[E], Result[T, F]]) -> Result[T, F]:
+    def or_else[T, F](self, op: Callable[[E], Result[T, F]]) -> Result[T, F]:
         """
         The contained result is `Err`, so return the result of `op` with the
-        original value passed in
+        original value passed in.
         """
-        return op(self._value)
+        return op(self.err_value)
 
-    def inspect(self, op: Callable[[T], Any]) -> Result[T, E]:
-        """
-        Calls a function with the contained value if `Ok`. Returns the original result.
-        """
+    def inspect[T](self, op: Callable[[T], Any]) -> Result[T, E]:
+        """Calls a function with the contained value if `Ok`. Returns the original result."""
         return self
 
-    def inspect_err(self, op: Callable[[E], Any]) -> Result[T, E]:
-        """
-        Calls a function with the contained value if `Err`. Returns the original result.
-        """
-        op(self._value)
+    def inspect_err[T](self, op: Callable[[E], Any]) -> Result[T, E]:
+        """Calls a function with the contained value if `Err`. Returns the original result."""
+        op(self.err_value)
         return self
 
 
@@ -422,7 +307,7 @@ A simple `Result` type inspired by Rust.
 Not all methods (https://doc.rust-lang.org/std/result/enum.Result.html)
 have been implemented, only the ones that make sense in the Python context.
 """
-Result: TypeAlias = Ok[T] | Err[E]
+type Result[T, E] = Ok[T] | Err[E]
 
 """
 A type to use in `isinstance` checks.
@@ -450,13 +335,11 @@ class UnwrapError(Exception):
 
     @property
     def result(self) -> Result[Any, Any]:
-        """
-        Returns the original result.
-        """
+        """Returns the original result."""
         return self._result
 
 
-def as_result(
+def as_result[**P, R, TBE: BaseException](
     *exceptions: type[TBE],
 ) -> Callable[[Callable[P, R]], Callable[P, Result[R, TBE]]]:
     """
@@ -469,12 +352,11 @@ def as_result(
         inspect.isclass(exception) and issubclass(exception, BaseException)
         for exception in exceptions
     ):
-        raise TypeError("as_result() requires one or more exception types")
+        msg = "as_result() requires one or more exception types"
+        raise TypeError(msg)
 
     def decorator(f: Callable[P, R]) -> Callable[P, Result[R, TBE]]:
-        """
-        Decorator to turn a function into one that returns a ``Result``.
-        """
+        """Decorator to turn a function into one that returns a ``Result``."""
 
         @functools.wraps(f)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> Result[R, TBE]:
@@ -488,7 +370,7 @@ def as_result(
     return decorator
 
 
-def as_async_result(
+def as_async_result[**P, R, TBE: BaseException](
     *exceptions: type[TBE],
 ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[Result[R, TBE]]]]:
     """
@@ -500,14 +382,13 @@ def as_async_result(
         inspect.isclass(exception) and issubclass(exception, BaseException)
         for exception in exceptions
     ):
-        raise TypeError("as_result() requires one or more exception types")
+        msg = "as_result() requires one or more exception types"
+        raise TypeError(msg)
 
     def decorator(
         f: Callable[P, Awaitable[R]],
     ) -> Callable[P, Awaitable[Result[R, TBE]]]:
-        """
-        Decorator to turn a function into one that returns a ``Result``.
-        """
+        """Decorator to turn a function into one that returns a ``Result``."""
 
         @functools.wraps(f)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Result[R, TBE]:
@@ -521,8 +402,8 @@ def as_async_result(
     return decorator
 
 
-def is_ok(result: Result[T, E]) -> TypeIs[Ok[T]]:
-    """A type guard to check if a result is an Ok
+def is_ok[T, E](result: Result[T, E]) -> TypeIs[Ok[T]]:
+    """A type guard to check if a result is an Ok.
 
     Usage:
 
@@ -538,8 +419,8 @@ def is_ok(result: Result[T, E]) -> TypeIs[Ok[T]]:
     return result.is_ok()
 
 
-def is_err(result: Result[T, E]) -> TypeIs[Err[E]]:
-    """A type guard to check if a result is an Err
+def is_err[T, E](result: Result[T, E]) -> TypeIs[Err[E]]:
+    """A type guard to check if a result is an Err.
 
     Usage:
 
@@ -555,7 +436,7 @@ def is_err(result: Result[T, E]) -> TypeIs[Err[E]]:
     return result.is_err()
 
 
-def do(gen: Generator[Result[T, E], None, None]) -> Result[T, E]:
+def do[T, E](gen: Generator[Result[T, E], None, None]) -> Result[T, E]:
     """Do notation for Result (syntactic sugar for sequence of `and_then()` calls).
 
     Usage:
@@ -585,21 +466,22 @@ def do(gen: Generator[Result[T, E], None, None]) -> Result[T, E]:
     try:
         return next(gen)
     except DoException as e:
-        out: Err[E] = e.err  # type: ignore
+        out: Err[E] = e.err
         return out
     except TypeError as te:
         # Turn this into a more helpful error message.
         # Python has strange rules involving turning generators involving `await`
         # into async generators, so we want to make sure to help the user clearly.
         if "'async_generator' object is not an iterator" in str(te):
-            raise TypeError(
+            msg = (
                 "Got async_generator but expected generator."
                 "See the section on do notation in the README."
             )
-        raise te
+            raise TypeError(msg)
+        raise
 
 
-async def do_async(
+async def do_async[T, E](
     gen: Generator[Result[T, E], None, None] | AsyncGenerator[Result[T, E], None],
 ) -> Result[T, E]:
     """Async version of do. Example:
@@ -655,5 +537,5 @@ async def do_async(
             return await gen.__anext__()
         return next(gen)
     except DoException as e:
-        out: Err[E] = e.err  # type: ignore
+        out: Err[E] = e.err
         return out
