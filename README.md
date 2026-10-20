@@ -28,8 +28,8 @@ breaking changes. Migrating from upstream:
 
 **`Ok` and `Err`**
 
-- They are frozen, slotted dataclasses. Assigning to a field raises
-  `FrozenInstanceError`, a subclass of `AttributeError`.
+- They are frozen, slotted dataclasses. Assigning to or deleting a field
+  raises `FrozenInstanceError`, a subclass of `AttributeError`.
 - The value is a public field, `ok_value` or `err_value`, and is passed
   positionally only: `Ok(1)` works, but `Ok(value=1)` or `Ok(ok_value=1)`
   raises `TypeError`. The private `_value` attribute is gone.
@@ -323,8 +323,10 @@ Err(err_value=2)
 ```
 
 Both the `Ok` and `Err` classes are frozen, slotted dataclasses: assigning
-to a field or adding an attribute raises `FrozenInstanceError` (a subclass
-of `AttributeError`), and the value is passed positionally only.
+to a field raises `FrozenInstanceError` (a subclass of `AttributeError`),
+adding an attribute also fails (with `TypeError` before Python 3.14, due to
+a CPython bug with frozen slotted dataclasses), and the value is passed
+positionally only.
 
 ### Handling exceptions
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
+
 import pytest
 
 from result import Err, Ok, OkErr, Result, UnwrapError
@@ -79,6 +81,33 @@ def test_err_value_is_exception() -> None:
         assert isinstance(cause, ValueError)
 
 
+def test_expect_err_value_is_exception() -> None:
+    """``Err.expect()`` chains the contained exception as the cause."""
+    error = ValueError("Some Error")
+
+    with pytest.raises(UnwrapError, match="failure: ValueError") as exc_info:
+        Err(error).expect("failure")
+
+    assert exc_info.value.__cause__ is error
+
+
+def test_expect_non_exception_has_no_cause() -> None:
+    """``Err.expect()`` sets no cause when the payload isn't an exception."""
+    with pytest.raises(UnwrapError) as exc_info:
+        Err("nay").expect("failure")
+
+    assert exc_info.value.__cause__ is None
+
+
+def test_value_is_deprecated() -> None:
+    """The ``.value`` property still works but emits a ``DeprecationWarning``."""
+    with pytest.warns(DeprecationWarning, match="deprecated"):
+        assert Ok("yay").value == "yay"
+
+    with pytest.warns(DeprecationWarning, match="deprecated"):
+        assert Err("nay").value == "nay"
+
+
 def test_ok_method() -> None:
     o = Ok("yay")
     n = Err("nay")
@@ -143,9 +172,8 @@ def test_unwrap_or_raise() -> None:
     o = Ok("yay")
     n = Err("nay")
     assert o.unwrap_or_raise(ValueError) == "yay"
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(ValueError, match=r"^nay$"):
         n.unwrap_or_raise(ValueError)
-    assert exc_info.value.args == ("nay",)
 
 
 def test_map() -> None:
@@ -205,6 +233,7 @@ def test_and_then() -> None:
 
 def test_inspect() -> None:
     oks: list[int] = []
+
     def add_to_oks(x: int) -> None:
         return oks.append(x)
 
@@ -215,6 +244,7 @@ def test_inspect() -> None:
 
 def test_inspect_err() -> None:
     errs: list[str] = []
+
     def add_to_errs(x: str) -> None:
         return errs.append(x)
 
@@ -298,14 +328,32 @@ def test_error_context() -> None:
     assert exc.result is n
 
 
+def test_frozen() -> None:
+    """Assigning to or deleting a field raises ``FrozenInstanceError``."""
+    o = Ok("yay")
+    n = Err("nay")
+    with pytest.raises(FrozenInstanceError):
+        o.ok_value = "other"  # type: ignore[misc]
+    with pytest.raises(FrozenInstanceError):
+        n.err_value = "other"  # type: ignore[misc]
+    with pytest.raises(FrozenInstanceError):
+        del o.ok_value  # type: ignore[misc]
+    with pytest.raises(FrozenInstanceError):
+        del n.err_value  # type: ignore[misc]
+
+
 def test_slots() -> None:
     """Ok and Err have slots, so assigning arbitrary attributes fails."""
     o = Ok("yay")
     n = Err("nay")
-    with pytest.raises(AttributeError):
+    # Before 3.14, frozen+slots dataclasses raise TypeError here instead of
+    # FrozenInstanceError (CPython bug), so only require that it fails.
+    with pytest.raises((AttributeError, TypeError)):
         o.some_arbitrary_attribute = 1  # type: ignore[attr-defined]
-    with pytest.raises(AttributeError):
+    with pytest.raises((AttributeError, TypeError)):
         n.some_arbitrary_attribute = 1  # type: ignore[attr-defined]
+    assert not hasattr(o, "__dict__")
+    assert not hasattr(n, "__dict__")
 
 
 def sq(i: int) -> Result[int, int]:
@@ -327,5 +375,7 @@ async def to_err_async(i: int) -> Result[int, int]:
 # Lambda versions of the same functions, just for test/type coverage
 def sq_lambda(i: int) -> Result[int, int]:
     return Ok(i * i)
+
+
 def to_err_lambda(i: int) -> Result[int, int]:
     return Err(i)
