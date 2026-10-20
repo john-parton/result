@@ -6,6 +6,8 @@
 A simple Result type for Python 3.12+ [inspired by
 Rust](https://doc.rust-lang.org/std/result/), fully type annotated.
 
+Documentation: <https://john-parton.github.io/result/>
+
 ## About this fork
 
 This is a fork of [rustedpy/result](https://github.com/rustedpy/result), which
@@ -234,8 +236,10 @@ and truly unexpected conditions.
 
 ## API
 
-Auto generated API docs are also available at
-[./docs/README.md](./docs/README.md).
+The API reference is built from the docstrings with
+[Sphinx](https://www.sphinx-doc.org/) and published at
+<https://john-parton.github.io/result/api.html>; see
+[Contributing](#contributing) for how to build it locally.
 
 Creating an instance:
 
@@ -520,7 +524,10 @@ Requires [uv](https://docs.astral.sh/uv/).
   - You can also start a Python REPL (`uv run python`) and import `result`
 4. Update documentation
   - Edit any relevant docstrings, markdown files
-5. Add an entry to the [changelog](./CHANGELOG.md)
+  - Build the docs with
+    `uv run --group docs sphinx-build -W docs docs/_build/html`
+    and open `docs/_build/html/index.html`
+5. Add an entry to the [changelog](https://github.com/john-parton/result/blob/main/CHANGELOG.md)
 6. Git commit all your changes and create a new PR.
 
 ## Related Projects

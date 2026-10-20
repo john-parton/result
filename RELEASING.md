@@ -9,9 +9,12 @@ export VERSION={VERSION BEING RELEASED}
 export GPG={YOUR GPG}
 ```
 
-2) Update version numbers to match the version being released:
+2) Update version numbers to match the version being released (the version
+in `pyproject.toml` is the only place it is defined; `result.__version__` and
+the docs read it from the installed package metadata):
 ```
-vim -p pyproject.toml src/result/__init__.py CHANGELOG.md
+vim -p pyproject.toml CHANGELOG.md
+uv lock
 ```
 
 3) Update diff link in CHANGELOG.md ([see example][diff-link-update-pr-example]):
@@ -21,7 +24,7 @@ vim CHANGELOG.md
 
 4) Do a signed commit and signed tag of the release:
 ```
-git add pyproject.toml uv.lock src/result/__init__.py CHANGELOG.md
+git add pyproject.toml uv.lock CHANGELOG.md
 git commit -S${GPG} -m "Release v${VERSION}"
 git tag -u ${GPG} -m "Release v${VERSION}" v${VERSION}
 ```

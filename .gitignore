@@ -7,6 +7,7 @@ __pycache__
 dist/
 *.egg-info/
 build/
+docs/_build/
 .idea/
 .venv/
 .ruff_cache/
