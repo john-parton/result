@@ -31,16 +31,18 @@ These should be replaced by direct use of `Ok()` and `Err()`. As an example, the
 
 ```python
 from result import Result
-res1 = Result.Ok('yay')
-res2 = Result.Err('nay')
+
+res1 = Result.Ok("yay")
+res2 = Result.Err("nay")
 ```
 
 should be replaced by:
 
 ```python
 from result import Ok, Err
-res1 = Ok('yay')
-res2 = Err('nay')
+
+res1 = Ok("yay")
+res2 = Err("nay")
 ```
 
 2\. Result is now a Union type between `Ok[T]` and `Err[E]`. As such, you cannot use `isinstance(res, Result)` anymore.
@@ -48,7 +50,8 @@ These should be replaced by `isinstance(res, OkErr)`. As an example, the followi
 
 ```python
 from result import Ok, Result
-res = Ok('yay')
+
+res = Ok("yay")
 if isinstance(res, Result):
     print("Result type!")
 ``` 
@@ -57,7 +60,8 @@ should be replaced with:
 
 ```python
 from result import Ok, OkErr
-res = Ok('yay')
+
+res = Ok("yay")
 if isinstance(res, OkErr):
     print("Result type!")
 ```
@@ -68,15 +72,15 @@ if isinstance(res, OkErr):
 ```python
 r: Result[int, str] = Ok(2)
 if r.is_ok():
-    reveal_type(r.value) # returns Union[int, str]
+    reveal_type(r.value)  # returns Union[int, str]
 ```
 
 but now, by using `isinstance`:
 
 ```python
-r: Result[int, str] = Ok(2) # == Union[Ok[int], Err[str]]
+r: Result[int, str] = Ok(2)  # == Union[Ok[int], Err[str]]
 if isinstance(r, Ok):
-    reveal_type(r.value) # returns int
+    reveal_type(r.value)  # returns int
 ```
 
 This allows for better type checking, but requires the use of `isinstance` instead of `is_ok()` or `is_err()`.

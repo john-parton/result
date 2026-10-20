@@ -10,6 +10,48 @@ Rust](https://doc.rust-lang.org/std/result/), fully type annotated.
 
 See [issue 201](https://github.com/rustedpy/result/issues/201) for more information.
 
+## Changes from rustedpy/result
+
+This is a fork of [rustedpy/result](https://github.com/rustedpy/result) with
+breaking changes. Migrating from upstream:
+
+**Requirements and tooling**
+
+- Requires Python 3.12+ (upstream supports 3.8+). The code uses PEP 695
+  generics (`class Ok[T]`), and the package has no runtime dependencies.
+- Packaging and development use [uv](https://docs.astral.sh/uv/)
+  (`uv_build`, `uv.lock`), replacing setuptools, `Makefile`, `tox` and
+  `requirements-dev.txt`.
+- Linting and formatting use ruff, and type checking uses pyrefly (plus
+  Pylance in strict mode), replacing flake8 and mypy. The mypy plugin-based
+  type tests (`tests/type_checking`) are removed.
+
+**`Ok` and `Err`**
+
+- They are frozen, slotted dataclasses. Assigning to or deleting a field
+  raises `FrozenInstanceError`, a subclass of `AttributeError`.
+- The value is a public field, `ok_value` or `err_value`, and is passed
+  positionally only: `Ok(1)` works, but `Ok(value=1)` or `Ok(ok_value=1)`
+  raises `TypeError`. The private `_value` attribute is gone.
+- `repr()` is the dataclass default: `Ok(ok_value=1)`, not `Ok(1)`. It can no
+  longer be passed to `eval()`.
+- Equality requires the same class (upstream used `isinstance`), and
+  `hash(Ok(x)) == hash(Err(x))`. They still compare unequal.
+- They can no longer be iterated or unpacked (`__iter__` is removed).
+- `.value` is still available but remains deprecated.
+
+**Removed or merged**
+
+- Do notation is removed: `do()`, `do_async()` and `DoException`.
+- The `as_result` and `as_async_result` decorators are removed. See
+  [Handling exceptions](#handling-exceptions) for the alternatives.
+- The `is_ok()` and `is_err()` type guard functions are removed. Use `match`,
+  or `isinstance(r, Ok)` / `isinstance(r, Err)`; the `.is_ok()` and
+  `.is_err()` methods remain.
+- There is no "chain everything" ethos. `match` is the primary way to handle
+  a result; the combinator methods (`map`, `and_then`, ...) remain for simple
+  sequences of steps. See [Pipelines](#pipelines).
+
 ## Installation
 
 Latest release:
@@ -38,15 +80,16 @@ def get_user_by_email(email: str) -> Tuple[Optional[User], Optional[str]]:
     Return the user instance or an error message.
     """
     if not user_exists(email):
-        return None, 'User does not exist'
+        return None, "User does not exist"
     if not user_active(email):
-        return None, 'User is inactive'
+        return None, "User is inactive"
     user = get_user(email)
     return user, None
 
-user, reason = get_user_by_email('ueli@example.com')
+
+user, reason = get_user_by_email("ueli@example.com")
 if user is None:
-    raise RuntimeError('Could not fetch user: %s' % reason)
+    raise RuntimeError("Could not fetch user: %s" % reason)
 else:
     do_something(user)
 ```
@@ -54,50 +97,36 @@ else:
 To something like this:
 
 ``` python
-from result import Ok, Err, Result, is_ok, is_err
+from result import Ok, Err, Result
+
 
 def get_user_by_email(email: str) -> Result[User, str]:
     """
     Return the user instance or an error message.
     """
     if not user_exists(email):
-        return Err('User does not exist')
+        return Err("User does not exist")
     if not user_active(email):
-        return Err('User is inactive')
+        return Err("User is inactive")
     user = get_user(email)
     return Ok(user)
 
-user_result = get_user_by_email(email)
-if is_ok(user_result):
-    # type(user_result.ok_value) == User
-    do_something(user_result.ok_value)
-else:
-    # type(user_result.err_value) == str
-    raise RuntimeError('Could not fetch user: %s' % user_result.err_value)
+
+match get_user_by_email(email):
+    case Ok(user):
+        # type(user) == User
+        do_something(user)
+    case Err(reason):
+        # type(reason) == str
+        raise RuntimeError(f"Could not fetch user: {reason}")
 ```
 
-Note that `.ok_value` exists only on an instance of `Ok` and
-`.err_value` exists only on an instance of `Err`.
-
-And if you're using python version `3.10` or later, you can use the
-elegant `match` statement as well:
-
-``` python
-from result import Result, Ok, Err
-
-def divide(a: int, b: int) -> Result[int, str]:
-    if b == 0:
-        return Err("Cannot divide by zero")
-    return Ok(a // b)
-
-values = [(10, 0), (10, 5)]
-for a, b in values:
-    match divide(a, b):
-        case Ok(value):
-            print(f"{a} // {b} == {value}")
-        case Err(e):
-            print(e)
-```
+`Ok` and `Err` support positional patterns, and type checkers narrow the
+captured value, so `match` is the recommended way to handle a result. If
+you only need one branch, `isinstance(result, Ok)` and
+`isinstance(result, Err)` narrow the type too; note that `.ok_value` exists
+only on an instance of `Ok` and `.err_value` exists only on an instance of
+`Err`.
 
 Not all methods
 (<https://doc.rust-lang.org/std/result/enum.Result.html>) have been
@@ -121,27 +150,24 @@ Creating an instance:
 Checking whether a result is `Ok` or `Err`:
 
 ``` python
-if is_err(result):
-    raise RuntimeError(result.err_value)
-do_something(result.ok_value)
-```
-or
-``` python
-if is_ok(result):
-    do_something(result.ok_value)
-else:
-    raise RuntimeError(result.err_value)
+match result:
+    case Ok(value):
+        do_something(value)
+    case Err(error):
+        raise RuntimeError(error)
 ```
 
-Alternatively, `isinstance` can be used (interchangeably to type guard functions
-`is_ok` and `is_err`). However, relying on `isinstance` may result in code that
-is slightly less readable and less concise:
+`isinstance` is handy when you only care about one branch:
 
 ``` python
 if isinstance(result, Err):
     raise RuntimeError(result.err_value)
 do_something(result.ok_value)
 ```
+
+The `.is_ok()` and `.is_err()` methods return plain booleans, which is fine
+for filters and assertions, but type checkers don't use them to narrow
+`result`.
 
 You can also check if an object is `Ok` or `Err` by using the `OkErr`
 type. Please note that this type is designed purely for convenience, and
@@ -279,9 +305,9 @@ Values and errors can be mapped using `map`, `map_or`, `map_or_else` and
 
 ``` python
 >>> Ok(1).map(lambda x: x + 1)
-Ok(2)
+Ok(ok_value=2)
 >>> Err('nay').map(lambda x: x + 1)
-Err('nay')
+Err(err_value='nay')
 >>> Ok(1).map_or(-1, lambda x: x + 1)
 2
 >>> Err(1).map_or(-1, lambda x: x + 1)
@@ -291,183 +317,110 @@ Err('nay')
 >>> Err('nay').map_or_else(lambda: 3, lambda x: x + 1)
 3
 >>> Ok(1).map_err(lambda x: x + 1)
-Ok(1)
+Ok(ok_value=1)
 >>> Err(1).map_err(lambda x: x + 1)
-Err(2)
+Err(err_value=2)
 ```
 
-To save memory, both the `Ok` and `Err` classes are ‘slotted’, i.e. they
-define `__slots__`. This means assigning arbitrary attributes to
-instances will raise `AttributeError`.
+Both the `Ok` and `Err` classes are frozen, slotted dataclasses: assigning
+to a field raises `FrozenInstanceError` (a subclass of `AttributeError`),
+adding an attribute also fails (with `TypeError` before Python 3.14, due to
+a CPython bug with frozen slotted dataclasses), and the value is passed
+positionally only.
 
-### `as_result` Decorator
+### Handling exceptions
 
-The `as_result()` decorator can be used to quickly turn ‘normal’
-functions into `Result` returning ones by specifying one or more
-exception types:
+There is no decorator for turning exception-raising functions into
+`Result`-returning ones. An explicit `try`/`except` is only a few lines, and
+it lets you keep the `try` narrow, so that bugs in your own code are not
+silently turned into `Err`.
+
+For third-party code, catch the specific exceptions you expect and return
+`Ok` or `Err`:
 
 ``` python
-@as_result(ValueError, IndexError)
-def f(value: int) -> int:
-    if value == 0:
-        raise ValueError  # becomes Err
-    elif value == 1:
-        raise IndexError  # becomes Err
-    elif value == 2:
-        raise KeyError  # raises Exception
-    else:
-        return value  # becomes Ok
-
-res = f(0)  # Err[ValueError()]
-res = f(1)  # Err[IndexError()]
-res = f(2)  # raises KeyError
-res = f(3)  # Ok[3]
+def parse_port(raw: str) -> Result[int, ValueError]:
+    try:
+        return Ok(int(raw))
+    except ValueError as e:
+        return Err(e)
 ```
 
-`Exception` (or even `BaseException`) can be specified to create a
-‘catch all’ `Result` return type. This is effectively the same as `try`
-followed by `except Exception`, which is not considered good practice in
-most scenarios, and hence this requires explicit opt-in.
-
-Since `as_result` is a regular decorator, it can be used to wrap
-existing functions (also from other libraries), albeit with a slightly
-unconventional syntax (without the usual `@`):
+You can also map the exception to your own error type, or add context:
 
 ``` python
-import third_party
-
-x = third_party.do_something(...)  # could raise; who knows?
-
-safe_do_something = as_result(Exception)(third_party.do_something)
-
-res = safe_do_something(...)  # Ok(...) or Err(...)
-if is_ok(res):
-    print(res.ok_value)
+def load(raw: str) -> Result[Config, ConfigError]:
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        return Err(ConfigError(f"invalid JSON: {e}"))
+    return Ok(Config.from_dict(data))
 ```
 
-### Do notation
-
-Do notation is syntactic sugar for a sequence of `and_then()` calls.
-Much like the equivalent in Rust or Haskell, but with different syntax.
-Instead of `x <- Ok(1)` we write `for x in Ok(1)`. Since the syntax is
-generator-based, the final result must be the first line, not the last.
+For async code it works the same way, with `await` inside the `try`:
 
 ``` python
-final_result: Result[int, str] = do(
-    Ok(x + y)
-    for x in Ok(1)
-    for y in Ok(2)
-)
+async def fetch(url: str) -> Result[bytes, httpx.HTTPError]:
+    try:
+        return Ok(await client.get_bytes(url))
+    except httpx.HTTPError as e:
+        return Err(e)
 ```
 
-Note that if you exclude the type annotation,
-`final_result: Result[float, int] = ...`, your type checker may be
-unable to infer the return type. To avoid an errors or warnings from
-your type checker, you should add a type hint when using the `do`
-function.
+For functions you wrote yourself, return `Ok`/`Err` from the body directly
+rather than raising and catching.
 
-This is similar to Rust's [m!
-macro](https://docs.rs/do-notation/latest/do_notation/):
+Catching `Exception` (or `BaseException`) is rarely a good idea; name the
+exception types you expect.
 
-``` rust
-use do_notation::m;
-let r = m! {
-    x <- Some(1);
-    y <- Some(2);
-    Some(x + y)
-};
-```
+### Pipelines
 
-Note that if your do statement has multiple <span
-class="title-ref">for\`s, you can access an identifier bound in a
-previous \`for</span>. Example:
+When each step returns a `Result`, `and_then` and `map` keep the happy path
+flat: the first `Err` short-circuits the rest.
 
 ``` python
-my_result: Result[int, str] = do(
-    f(x, y, z)
-    for x in get_x()
-    for y in calculate_y_from_x(x)
-    for z in calculate_z_from_x_y(x, y)
-)
+def handle(raw: str) -> Result[Reply, ValueError | OSError]:
+    return parse_port(raw).and_then(connect).map(Conn.greet)
 ```
 
-You can use `do()` with awaited values as follows:
+The same thing written with `match` is noticeably longer:
 
 ``` python
-async def process_data(data) -> Result[int, str]:
-    res1 = await get_result_1(data)
-    res2 = await get_result_2(data)
-    return do(
-        Ok(x + y)
-        for x in res1
-        for y in res2
-    )
+def handle(raw: str) -> Result[Reply, ValueError | OSError]:
+    match parse_port(raw):
+        case Err() as err:
+            return err
+        case Ok(port):
+            pass
+    match connect(port):
+        case Err() as err:
+            return err
+        case Ok(conn):
+            return Ok(conn.greet())
 ```
 
-However, if you want to await something inside the expression, use
-`do_async()`:
-
-``` python
-async def process_data(data) -> Result[int, str]:
-    return do_async(
-        Ok(x + y)
-        for x in await get_result_1(data)
-        for y in await get_result_2(data)
-    )
-```
-
-Troubleshooting `do()` calls:
-
-``` python
-TypeError("Got async_generator but expected generator")
-```
-
-Sometimes regular `do()` can handle async values, but this error means
-you have hit a case where it does not. You should use `do_async()` here
-instead.
+Use whichever reads better. This fork just doesn't push a "chain everything"
+style: reach for a pipeline when the steps are a simple sequence of
+`Result`-returning functions, and for `match` when you need to branch on or
+handle each outcome.
 
 ## Contributing
 
-These steps should work on any Unix-based system (Linux, macOS, etc) with Python
-and `make` installed. On Windows, you will need to refer to the Python
-documentation (linked below) and reference the `Makefile` for commands to run
-from the non-unix shell you're using on Windows.
+Requires [uv](https://docs.astral.sh/uv/).
 
-1. Setup and activate a virtual environment. See [Python docs][pydocs-venv] for more
-   information about virtual environments and setup.
-2. Run `make install` to install dependencies
-3. Switch to a new git branch and make your changes
-4. Test your changes:
-  - `make test`
-  - `make lint`
-  - You can also start a Python REPL and import `result`
-5. Update documentation
+1. Run `uv sync` to create the virtualenv and install dependencies
+2. Switch to a new git branch and make your changes
+3. Test your changes:
+  - `uv run pytest`
+  - `uv run ruff check` and `uv run ruff format --check`
+  - `uv run pyrefly check`
+  - You can also start a Python REPL (`uv run python`) and import `result`
+4. Update documentation
   - Edit any relevant docstrings, markdown files
-  - Run `make docs`
-6. Add an entry to the [changelog](./CHANGELOG.md)
-5. Git commit all your changes and create a new PR.
-
-[pydocs-venv]: https://docs.python.org/3/library/venv.html
+5. Add an entry to the [changelog](./CHANGELOG.md)
+6. Git commit all your changes and create a new PR.
 
 ## FAQ
-
--   **Why should I use the `is_ok` (`is_err`) type guard function over the `is_ok` (`is_err`) method?**
-
-As you can see in the following example, MyPy can only narrow the type correctly
-while using the type guard **functions**:
-```python
-result: Result[int, str]
-
-if is_ok(result):
-    reveal_type(result)  # "result.result.Ok[builtins.int]"
-else:
-    reveal_type(result)  # "result.result.Err[builtins.str]"
-
-if result.is_ok():
-    reveal_type(result)  # "Union[result.result.Ok[builtins.int], result.result.Err[builtins.str]]"
-else:
-    reveal_type(result)  # "Union[result.result.Ok[builtins.int], result.result.Err[builtins.str]]"
-```
 
 -   **Why do I get the "Cannot infer type argument" error with MyPy?**
 

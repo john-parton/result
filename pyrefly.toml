@@ -1,0 +1,11 @@
+preset = "legacy"
+
+project-includes = ["src/**/*.py", "tests/**/*.py"]
+search-path = ["src", "."]
+python-version = "3.14.7"
+
+[errors]
+redundant-cast = "warn"
+# Bans bare `dict`/`list`/`tuple`/etc. (no type args); `dict[str, Any]` is fine
+# since its type args are explicit. Prefer TypedDict over dict[str, Any].
+implicit-any-type-argument = "error"

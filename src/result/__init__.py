@@ -1,15 +1,11 @@
+"""A `Result` type inspired by Rust: `Ok(value)` or `Err(error)`."""
+
 from .result import (
     Err,
     Ok,
     OkErr,
     Result,
     UnwrapError,
-    as_async_result,
-    as_result,
-    is_ok,
-    is_err,
-    do,
-    do_async,
 )
 
 __all__ = [
@@ -18,11 +14,5 @@ __all__ = [
     "OkErr",
     "Result",
     "UnwrapError",
-    "as_async_result",
-    "as_result",
-    "is_ok",
-    "is_err",
-    "do",
-    "do_async",
 ]
 __version__ = "0.18.0.dev0"

@@ -4,9 +4,7 @@ from result import Err, Ok, Result
 
 
 def test_pattern_matching_on_ok_type() -> None:
-    """
-    Pattern matching on ``Ok()`` matches the contained value.
-    """
+    """Pattern matching on ``Ok()`` matches the contained value."""
     o: Result[str, int] = Ok("yay")
     match o:
         case Ok(value):
@@ -17,9 +15,7 @@ def test_pattern_matching_on_ok_type() -> None:
 
 
 def test_pattern_matching_on_err_type() -> None:
-    """
-    Pattern matching on ``Err()`` matches the contained value.
-    """
+    """Pattern matching on ``Err()`` matches the contained value."""
     n: Result[int, str] = Err("nay")
     match n:
         case Err(value):

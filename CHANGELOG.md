@@ -13,8 +13,14 @@ Possible log types:
 
 ## [Unreleased]
 
-- `[changed]` Improve type narrowing for `is_ok` and `is_err` type guards by
-  replacing `typing.TypeGuard` with `typing.TypeIs` (#193)
+- `[removed]` `as_async_result` and `as_result`. Use an explicit `try`/`except`
+  returning `Ok`/`Err` instead (see the README)
+- `[removed]` Do notation (`do()`, `do_async()`, `DoException`) and the
+  `__iter__` methods on `Ok` and `Err` that supported it
+- `[removed]` `is_ok()` and `is_err()` type guard functions; use `match` or
+  `isinstance`. The `.is_ok()` and `.is_err()` methods remain
+- `[removed]` The `typing_extensions` dependency, which was only needed for
+  `TypeIs`
 
 ## [0.17.0] - 2024-06-02
 
