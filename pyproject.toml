@@ -15,8 +15,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 requires-python = ">=3.12"
-# TypeIs is only in typing from 3.13
-dependencies = ["typing_extensions>=4.10.0; python_version<'3.13'"]
+dependencies = []
 
 [project.urls]
 Homepage = "https://github.com/rustedpy/result"

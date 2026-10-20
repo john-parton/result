@@ -4,12 +4,6 @@ from .result import (
     OkErr,
     Result,
     UnwrapError,
-    as_async_result,
-    as_result,
-    do,
-    do_async,
-    is_err,
-    is_ok,
 )
 
 __all__ = [
@@ -18,11 +12,5 @@ __all__ = [
     "OkErr",
     "Result",
     "UnwrapError",
-    "as_async_result",
-    "as_result",
-    "do",
-    "do_async",
-    "is_err",
-    "is_ok",
 ]
 __version__ = "0.18.0.dev0"

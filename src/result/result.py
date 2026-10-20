@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-import functools
-import inspect
-from collections.abc import AsyncGenerator, Awaitable, Callable, Generator, Iterator
 from dataclasses import dataclass
 from typing import (
+    TYPE_CHECKING,
     Any,
     Final,
     Literal,
     NoReturn,
-    TypeIs,
 )
 from warnings import warn
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 
 @dataclass(frozen=True, slots=True, init=False)
@@ -22,9 +22,6 @@ class Ok[T]:
 
     def __init__(self, ok_value: T, /) -> None:
         object.__setattr__(self, "ok_value", ok_value)
-
-    def __iter__(self) -> Iterator[T]:
-        yield self.ok_value
 
     def is_ok(self) -> Literal[True]:
         return True
@@ -72,7 +69,7 @@ class Ok[T]:
         """Raise an UnwrapError since this type is `Ok`."""
         raise UnwrapError(self, "Called `Result.unwrap_err()` on an `Ok` value")
 
-    def unwrap_or[U](self, _default: U) -> T:
+    def unwrap_or(self, _default: object) -> T:
         """Return the value."""
         return self.ok_value
 
@@ -146,19 +143,6 @@ class Ok[T]:
         return self
 
 
-class DoException(Exception):
-    """
-    This is used to signal to `do()` that the result is an `Err`,
-    which short-circuits the generator and returns that Err.
-    Using this exception for control flow in `do()` allows us
-    to simulate `and_then()` in the Err case: namely, we don't call `op`,
-    we just return `self` (the Err).
-    """
-
-    def __init__(self, err: Err[Any]) -> None:
-        self.err = err
-
-
 @dataclass(frozen=True, slots=True, init=False)
 class Err[E]:
     """A value that signifies failure and which stores arbitrary data for the error."""
@@ -167,14 +151,6 @@ class Err[E]:
 
     def __init__(self, err_value: E, /) -> None:
         object.__setattr__(self, "err_value", err_value)
-
-    def __iter__(self) -> Iterator[NoReturn]:
-        def _iter() -> Iterator[NoReturn]:
-            # Exception will be raised when the iterator is advanced, not when it's created
-            raise DoException(self)
-            yield  # This yield will never be reached, but is necessary to create a generator
-
-        return _iter()
 
     def is_ok(self) -> Literal[False]:
         return False
@@ -337,205 +313,3 @@ class UnwrapError(Exception):
     def result(self) -> Result[Any, Any]:
         """Returns the original result."""
         return self._result
-
-
-def as_result[**P, R, TBE: BaseException](
-    *exceptions: type[TBE],
-) -> Callable[[Callable[P, R]], Callable[P, Result[R, TBE]]]:
-    """
-    Make a decorator to turn a function into one that returns a ``Result``.
-
-    Regular return values are turned into ``Ok(return_value)``. Raised
-    exceptions of the specified exception type(s) are turned into ``Err(exc)``.
-    """
-    if not exceptions or not all(
-        inspect.isclass(exception) and issubclass(exception, BaseException)
-        for exception in exceptions
-    ):
-        msg = "as_result() requires one or more exception types"
-        raise TypeError(msg)
-
-    def decorator(f: Callable[P, R]) -> Callable[P, Result[R, TBE]]:
-        """Decorator to turn a function into one that returns a ``Result``."""
-
-        @functools.wraps(f)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Result[R, TBE]:
-            try:
-                return Ok(f(*args, **kwargs))
-            except exceptions as exc:
-                return Err(exc)
-
-        return wrapper
-
-    return decorator
-
-
-def as_async_result[**P, R, TBE: BaseException](
-    *exceptions: type[TBE],
-) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[Result[R, TBE]]]]:
-    """
-    Make a decorator to turn an async function into one that returns a ``Result``.
-    Regular return values are turned into ``Ok(return_value)``. Raised
-    exceptions of the specified exception type(s) are turned into ``Err(exc)``.
-    """
-    if not exceptions or not all(
-        inspect.isclass(exception) and issubclass(exception, BaseException)
-        for exception in exceptions
-    ):
-        msg = "as_result() requires one or more exception types"
-        raise TypeError(msg)
-
-    def decorator(
-        f: Callable[P, Awaitable[R]],
-    ) -> Callable[P, Awaitable[Result[R, TBE]]]:
-        """Decorator to turn a function into one that returns a ``Result``."""
-
-        @functools.wraps(f)
-        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Result[R, TBE]:
-            try:
-                return Ok(await f(*args, **kwargs))
-            except exceptions as exc:
-                return Err(exc)
-
-        return async_wrapper
-
-    return decorator
-
-
-def is_ok[T, E](result: Result[T, E]) -> TypeIs[Ok[T]]:
-    """A type guard to check if a result is an Ok.
-
-    Usage:
-
-    ``` python
-    r: Result[int, str] = get_a_result()
-    if is_ok(r):
-        r   # r is of type Ok[int]
-    elif is_err(r):
-        r   # r is of type Err[str]
-    ```
-
-    """
-    return result.is_ok()
-
-
-def is_err[T, E](result: Result[T, E]) -> TypeIs[Err[E]]:
-    """A type guard to check if a result is an Err.
-
-    Usage:
-
-    ``` python
-    r: Result[int, str] = get_a_result()
-    if is_ok(r):
-        r   # r is of type Ok[int]
-    elif is_err(r):
-        r   # r is of type Err[str]
-    ```
-
-    """
-    return result.is_err()
-
-
-def do[T, E](gen: Generator[Result[T, E], None, None]) -> Result[T, E]:
-    """Do notation for Result (syntactic sugar for sequence of `and_then()` calls).
-
-    Usage:
-
-    ``` rust
-    // This is similar to
-    use do_notation::m;
-    let final_result = m! {
-        x <- Ok("hello");
-        y <- Ok(True);
-        Ok(len(x) + int(y) + 0.5)
-    };
-    ```
-
-    ``` rust
-    final_result: Result[float, int] = do(
-            Ok(len(x) + int(y) + 0.5)
-            for x in Ok("hello")
-            for y in Ok(True)
-        )
-    ```
-
-    NOTE: If you exclude the type annotation e.g. `Result[float, int]`
-    your type checker might be unable to infer the return type.
-    To avoid an error, you might need to help it with the type hint.
-    """
-    try:
-        return next(gen)
-    except DoException as e:
-        out: Err[E] = e.err
-        return out
-    except TypeError as te:
-        # Turn this into a more helpful error message.
-        # Python has strange rules involving turning generators involving `await`
-        # into async generators, so we want to make sure to help the user clearly.
-        if "'async_generator' object is not an iterator" in str(te):
-            msg = (
-                "Got async_generator but expected generator."
-                "See the section on do notation in the README."
-            )
-            raise TypeError(msg)
-        raise
-
-
-async def do_async[T, E](
-    gen: Generator[Result[T, E], None, None] | AsyncGenerator[Result[T, E], None],
-) -> Result[T, E]:
-    """Async version of do. Example:
-
-    ``` python
-    final_result: Result[float, int] = await do_async(
-        Ok(len(x) + int(y) + z)
-            for x in await get_async_result_1()
-            for y in await get_async_result_2()
-            for z in get_sync_result_3()
-        )
-    ```
-
-    NOTE: Python makes generators async in a counter-intuitive way.
-
-    ``` python
-    # This is a regular generator:
-        async def foo(): ...
-        do(Ok(1) for x in await foo())
-    ```
-
-    ``` python
-    # But this is an async generator:
-        async def foo(): ...
-        async def bar(): ...
-        do(
-            Ok(1)
-            for x in await foo()
-            for y in await bar()
-        )
-    ```
-
-    We let users try to use regular `do()`, which works in some cases
-    of awaiting async values. If we hit a case like above, we raise
-    an exception telling the user to use `do_async()` instead.
-    See `do()`.
-
-    However, for better usability, it's better for `do_async()` to also accept
-    regular generators, as you get in the first case:
-
-    ``` python
-    async def foo(): ...
-        do(Ok(1) for x in await foo())
-    ```
-
-    Furthermore, neither mypy nor pyright can infer that the second case is
-    actually an async generator, so we cannot annotate `do_async()`
-    as accepting only an async generator. This is additional motivation
-    to accept either.
-    """
-    try:
-        if isinstance(gen, AsyncGenerator):
-            return await gen.__anext__()
-        return next(gen)
-    except DoException as e:
-        out: Err[E] = e.err
-        return out

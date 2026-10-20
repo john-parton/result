@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from result import Err, Ok, OkErr, Result, UnwrapError, as_async_result, as_result
+from result import Err, Ok, OkErr, Result, UnwrapError
 
 
 def test_ok_factories() -> None:
@@ -306,87 +306,6 @@ def test_slots() -> None:
         o.some_arbitrary_attribute = 1  # type: ignore[attr-defined]
     with pytest.raises(AttributeError):
         n.some_arbitrary_attribute = 1  # type: ignore[attr-defined]
-
-
-def test_as_result() -> None:
-    """``as_result()`` turns functions into ones that return a ``Result``."""
-
-    @as_result(ValueError)
-    def good(value: int) -> int:
-        return value
-
-    @as_result(IndexError, ValueError)
-    def bad(value: int) -> int:
-        raise ValueError
-
-    good_result = good(123)
-    bad_result = bad(123)
-
-    assert isinstance(good_result, Ok)
-    assert good_result.unwrap() == 123
-    assert isinstance(bad_result, Err)
-    assert isinstance(bad_result.unwrap_err(), ValueError)
-
-
-def test_as_result_other_exception() -> None:
-    """``as_result()`` only catches the specified exceptions."""
-
-    @as_result(ValueError)
-    def f() -> int:
-        raise IndexError
-
-    with pytest.raises(IndexError):
-        f()
-
-
-def test_as_result_invalid_usage() -> None:
-    """Invalid use of ``as_result()`` raises reasonable errors."""
-    message = "requires one or more exception types"
-
-    with pytest.raises(TypeError, match=message):
-
-        @as_result()  # No exception types specified
-        def f() -> int:
-            return 1
-
-    with pytest.raises(TypeError, match=message):
-
-        @as_result("not an exception type")  # type: ignore[arg-type]
-        def g() -> int:
-            return 1
-
-
-def test_as_result_type_checking() -> None:
-    """The ``as_result()`` is a signature-preserving decorator."""
-
-    @as_result(ValueError)
-    def f(a: int) -> int:
-        return a
-
-    res: Result[int, ValueError]
-    res = f(123)  # No mypy error here.
-    assert res.ok() == 123
-
-
-@pytest.mark.asyncio
-async def test_as_async_result() -> None:
-    """``as_async_result()`` turns functions into ones that return a ``Result``."""
-
-    @as_async_result(ValueError)
-    async def good(value: int) -> int:
-        return value
-
-    @as_async_result(IndexError, ValueError)
-    async def bad(value: int) -> int:
-        raise ValueError
-
-    good_result = await good(123)
-    bad_result = await bad(123)
-
-    assert isinstance(good_result, Ok)
-    assert good_result.unwrap() == 123
-    assert isinstance(bad_result, Err)
-    assert isinstance(bad_result.unwrap_err(), ValueError)
 
 
 def sq(i: int) -> Result[int, int]:
