@@ -1,12 +1,12 @@
 [project]
 name = "result"
-version = "0.18.0.dev0"
+version = "0.18.0"
 description = "A Rust-like result type for Python"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Danilo Bargen", email = "mail@dbrgn.ch" }]
-maintainers = [{ name = "rustedpy github org members" }]
+maintainers = [{ name = "John Parton" }]
 keywords = ["rust", "result", "enum"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -18,7 +18,10 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/rustedpy/result"
+Homepage = "https://github.com/john-parton/result"
+Documentation = "https://john-parton.github.io/result/"
+Changelog = "https://github.com/john-parton/result/blob/main/CHANGELOG.md"
+Upstream = "https://github.com/rustedpy/result"
 
 [build-system]
 requires = ["uv_build>=0.12.18,<0.13.0"]

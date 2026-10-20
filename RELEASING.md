@@ -1,54 +1,66 @@
 # Release process
 
-1) Export the necessary environment variables:
-```
-# Examples: '0.8.0', '0.8.0rc1', '0.8.0b1'
-export VERSION={VERSION BEING RELEASED}
+This project is **not** published to PyPI: the `result` name there belongs to
+the upstream rustedpy/result project. A release is a signed git tag plus a
+GitHub Release with the wheel and sdist attached. The version is defined only
+in `pyproject.toml`; `result.__version__` and the docs read it from the
+installed package metadata.
 
-# See `gpg -k`
-export GPG={YOUR GPG}
-```
+`main` is protected, so the release commit goes through a pull request.
 
-2) Update version numbers to match the version being released (the version
-in `pyproject.toml` is the only place it is defined; `result.__version__` and
-the docs read it from the installed package metadata):
+1) Create a release branch and set the version being released:
 ```
-vim -p pyproject.toml CHANGELOG.md
+export VERSION={VERSION BEING RELEASED}   # for example '0.19.0'
+git switch main && git pull
+git switch -c release/${VERSION}
+vim pyproject.toml    # version = "${VERSION}"
 uv lock
 ```
 
-3) Update diff link in CHANGELOG.md ([see example][diff-link-update-pr-example]):
+2) Update `CHANGELOG.md`:
+- Add a `## [${VERSION}] - YYYY-MM-DD` heading above the entries under
+  `## [Unreleased]`, so that `[Unreleased]` is empty again. The release
+  workflow uses the text under this heading as the release notes and fails if
+  it is missing, so keep the `## [${VERSION}]` form.
+- Update the link references at the bottom: point `[Unreleased]` at
+  `compare/v${VERSION}...HEAD` and add
+  `[${VERSION}]: https://github.com/john-parton/result/releases/tag/v${VERSION}`.
+
+3) Update the pinned tag in the README's Installation section (the release
+link, the pip and uv commands, the `pyproject.toml` example and the wheel
+URL):
 ```
-vim CHANGELOG.md
+grep -n "v0\.\|0\.[0-9]*\.[0-9]*-py3" README.md
 ```
 
-4) Do a signed commit and signed tag of the release:
+4) Check everything, then open a pull request and merge it (squash):
 ```
-git add pyproject.toml uv.lock CHANGELOG.md
-git commit -S${GPG} -m "Release v${VERSION}"
-git tag -u ${GPG} -m "Release v${VERSION}" v${VERSION}
-```
-
-5) Build source and binary distributions:
-```
-rm -rf ./dist
-uv build
-```
-
-6) Upload package to PyPI:
-```
-uv publish dist/result-${VERSION}*
-git push
-git push --tags
+uv run ruff check && uv run ruff format --check
+uv run pyrefly check
+uv run pytest
+uv run --group docs sphinx-build -b html -W docs docs/_build/html
+git add pyproject.toml uv.lock CHANGELOG.md README.md
+git commit -m "Release v${VERSION}"
+git push -u origin HEAD
+gh pr create -R john-parton/result
 ```
 
-7) Optionally check the new version is published correctly
-- https://github.com/rustedpy/result/tags
-- https://pypi.org/project/result/#history
-
-8) Update version number to next dev version (for example after `v0.9.0` this should be set to `0.10.0.dev0`:
+5) Tag the merged commit with a signed tag and push it:
 ```
-vim -p pyproject.toml src/result/__init__.py
+git switch main && git pull
+git tag -s v${VERSION} -m "Release v${VERSION}"
+git push origin v${VERSION}
 ```
+Pushing the tag runs the `Release` workflow (`.github/workflows/release.yml`).
+It checks that the tag matches the version in `pyproject.toml`, builds the
+wheel and sdist with `uv build`, and creates the GitHub Release with the
+changelog entry as its notes.
 
-[diff-link-update-pr-example]: https://github.com/rustedpy/result/pull/77/files
+6) Check the release:
+- https://github.com/john-parton/result/releases
+- the wheel is attached, for example
+  `result-${VERSION}-py3-none-any.whl`, and installs with
+  `pip install "git+https://github.com/john-parton/result@v${VERSION}"`
+
+7) Start the next development version in a pull request. For example, after
+`v0.19.0` set `version = "0.20.0.dev0"` in `pyproject.toml` and run `uv lock`.

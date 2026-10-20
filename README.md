@@ -1,7 +1,6 @@
 # Result
 
 [![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/john-parton/result/ci.yml?branch=main)](https://github.com/john-parton/result/actions/workflows/ci.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/john-parton/result/branch/main/graph/badge.svg)](https://codecov.io/gh/john-parton/result)
 
 A simple Result type for Python 3.12+ [inspired by
 Rust](https://doc.rust-lang.org/std/result/), fully type annotated.
@@ -68,17 +67,32 @@ Migrating from upstream:
 
 ## Installation
 
-This fork is installed from GitHub. Note that `pip install result` installs
-the unmaintained upstream package, not this fork.
+This fork is not published to PyPI: `pip install result` installs the
+unmaintained upstream package, not this fork. Install a tagged release from
+GitHub instead. The latest release is
+[v0.18.0](https://github.com/john-parton/result/releases/tag/v0.18.0).
 
 ``` sh
-$ pip install git+https://github.com/john-parton/result
+$ pip install "git+https://github.com/john-parton/result@v0.18.0"
 ```
 
 or, with [uv](https://docs.astral.sh/uv/):
 
 ``` sh
-$ uv add git+https://github.com/john-parton/result
+$ uv add git+https://github.com/john-parton/result --tag v0.18.0
+```
+
+To depend on it from another project's `pyproject.toml`:
+
+``` toml
+dependencies = ["result @ git+https://github.com/john-parton/result@v0.18.0"]
+```
+
+Each [release](https://github.com/john-parton/result/releases) also has the
+built wheel attached, which can be installed directly without cloning:
+
+``` sh
+$ pip install https://github.com/john-parton/result/releases/download/v0.18.0/result-0.18.0-py3-none-any.whl
 ```
 
 ## Summary

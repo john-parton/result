@@ -13,6 +13,22 @@ Possible log types:
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-20
+
+First release of the [john-parton/result](https://github.com/john-parton/result)
+fork of rustedpy/result, which is no longer maintained. It is not published to
+PyPI; install it from the `v0.18.0` tag (see the README). This release contains
+breaking changes; the README has a migration guide.
+
+- `[changed]` Requires Python 3.12+ (upstream supported 3.8+); the code uses
+  PEP 695 generics and the `type` statement
+- `[changed]` `Ok` and `Err` are frozen, slotted dataclasses. The value is a
+  public field (`ok_value` / `err_value`), passed positionally only, and the
+  private `_value` attribute is gone. `repr()` is now `Ok(ok_value=1)`,
+  equality requires the same class, and `hash(Ok(x)) == hash(Err(x))`
+- `[changed]` `Result[T, E]` is a `type` alias (`Ok[T] | Err[E]`) rather than a
+  `typing.Union`, so it can no longer be passed to `isinstance`; use
+  `isinstance(r, (Ok, Err))` or `OkErr`
 - `[removed]` `as_async_result` and `as_result`. Use an explicit `try`/`except`
   returning `Ok`/`Err` instead (see the README)
 - `[removed]` Do notation (`do()`, `do_async()`, `DoException`) and the
@@ -20,7 +36,13 @@ Possible log types:
 - `[removed]` `is_ok()` and `is_err()` type guard functions; use `match` or
   `isinstance`. The `.is_ok()` and `.is_err()` methods remain
 - `[removed]` The `typing_extensions` dependency, which was only needed for
-  `TypeIs`
+  `TypeIs`; the package now has no runtime dependencies
+- `[deprecated]` `.value` remains deprecated (since 0.11.0); use `.ok_value` or
+  `.err_value`
+- `[added]` Documentation built with Sphinx and published to GitHub Pages;
+  `result.__version__` is read from the package metadata
+- `[changed]` Development tooling: uv, ruff and pyrefly replace setuptools,
+  tox, flake8 and mypy; the mypy plugin type tests are removed
 
 ## [0.17.0] - 2024-06-02
 
@@ -155,7 +177,8 @@ codebase.
  - Initial version
 
 [MIGRATING.md]: https://github.com/rustedpy/result/blob/main/MIGRATING.md
-[Unreleased]: https://github.com/rustedpy/result/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/john-parton/result/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/john-parton/result/releases/tag/v0.18.0
 [0.17.0]: https://github.com/rustedpy/result/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/rustedpy/result/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/rustedpy/result/compare/v0.15.0...v0.16.0
