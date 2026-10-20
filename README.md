@@ -1,19 +1,25 @@
 # Result
 
-[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/rustedpy/result/ci.yml?branch=main)](https://github.com/rustedpy/result/actions/workflows/ci.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/rustedpy/result/branch/main/graph/badge.svg)](https://codecov.io/gh/rustedpy/result)
+[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/john-parton/result/ci.yml?branch=main)](https://github.com/john-parton/result/actions/workflows/ci.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/john-parton/result/branch/main/graph/badge.svg)](https://codecov.io/gh/john-parton/result)
 
-A simple Result type for Python 3 [inspired by
+A simple Result type for Python 3.12+ [inspired by
 Rust](https://doc.rust-lang.org/std/result/), fully type annotated.
 
-## THIS PROJECT IS NO LONGER MAINTAINED
+## About this fork
 
-See [issue 201](https://github.com/rustedpy/result/issues/201) for more information.
+This is a fork of [rustedpy/result](https://github.com/rustedpy/result), which
+is no longer maintained (see
+[issue 201](https://github.com/rustedpy/result/issues/201)). Many thanks to
+Danilo Bargen, the rustedpy organization and all the contributors to the
+original project: the design and most of the API here come from their work.
+
+This fork makes breaking changes; see
+[Changes from rustedpy/result](#changes-from-rustedpyresult) below.
 
 ## Changes from rustedpy/result
 
-This is a fork of [rustedpy/result](https://github.com/rustedpy/result) with
-breaking changes. Migrating from upstream:
+Migrating from upstream:
 
 **Requirements and tooling**
 
@@ -22,8 +28,8 @@ breaking changes. Migrating from upstream:
 - Packaging and development use [uv](https://docs.astral.sh/uv/)
   (`uv_build`, `uv.lock`), replacing setuptools, `Makefile`, `tox` and
   `requirements-dev.txt`.
-- Linting and formatting use ruff, and type checking uses pyrefly (plus
-  Pylance in strict mode), replacing flake8 and mypy. The mypy plugin-based
+- Linting and formatting use ruff, and type checking uses pyrefly and
+  pyright, replacing flake8 and mypy. The mypy plugin-based
   type tests (`tests/type_checking`) are removed.
 
 **`Ok` and `Err`**
@@ -39,6 +45,9 @@ breaking changes. Migrating from upstream:
   `hash(Ok(x)) == hash(Err(x))`. They still compare unequal.
 - They can no longer be iterated or unpacked (`__iter__` is removed).
 - `.value` is still available but remains deprecated.
+- `Result[T, E]` is a PEP 695 `type` alias (`Ok[T] | Err[E]`) rather than a
+  `typing.Union`, so it can no longer be passed to `isinstance`. Use
+  `isinstance(r, (Ok, Err))` or `OkErr`.
 
 **Removed or merged**
 
@@ -54,16 +63,17 @@ breaking changes. Migrating from upstream:
 
 ## Installation
 
-Latest release:
+This fork is installed from GitHub. Note that `pip install result` installs
+the unmaintained upstream package, not this fork.
 
 ``` sh
-$ pip install result
+$ pip install git+https://github.com/john-parton/result
 ```
 
-Latest GitHub `main` branch version:
+or, with [uv](https://docs.astral.sh/uv/):
 
 ``` sh
-$ pip install git+https://github.com/rustedpy/result
+$ uv add git+https://github.com/john-parton/result
 ```
 
 ## Summary
@@ -71,11 +81,11 @@ $ pip install git+https://github.com/rustedpy/result
 The idea is that a result value can be either `Ok(value)` or
 `Err(error)`, with a way to differentiate between the two. `Ok` and
 `Err` are both classes encapsulating an arbitrary value. `Result[T, E]`
-is a generic type alias for `typing.Union[Ok[T], Err[E]]`. It will
+is a generic type alias for `Ok[T] | Err[E]`. It will
 change code like this:
 
 ``` python
-def get_user_by_email(email: str) -> Tuple[Optional[User], Optional[str]]:
+def get_user_by_email(email: str) -> tuple[User | None, str | None]:
     """
     Return the user instance or an error message.
     """
@@ -89,7 +99,7 @@ def get_user_by_email(email: str) -> Tuple[Optional[User], Optional[str]]:
 
 user, reason = get_user_by_email("ueli@example.com")
 if user is None:
-    raise RuntimeError("Could not fetch user: %s" % reason)
+    raise RuntimeError(f"Could not fetch user: {reason}")
 else:
     do_something(user)
 ```
@@ -193,8 +203,8 @@ Convert a `Result` to the value or `None`:
 >>> res2 = Err('nay')
 >>> res1.ok()
 'yay'
->>> res2.ok()
-None
+>>> res2.ok() is None
+True
 ```
 
 Convert a `Result` to the error or `None`:
@@ -202,8 +212,8 @@ Convert a `Result` to the error or `None`:
 ``` python
 >>> res1 = Ok('yay')
 >>> res2 = Err('nay')
->>> res1.err()
-None
+>>> res1.err() is None
+True
 >>> res2.err()
 'nay'
 ```
@@ -219,7 +229,7 @@ Access the value directly, without any other checks:
 'nay'
 ```
 
-Note that this is a property, you cannot assign to it. Results are
+Note that these are frozen fields: you cannot assign to them. Results are
 immutable.
 
 When the value inside is irrelevant, we suggest using `None` or a
@@ -238,16 +248,13 @@ returns the error value if `Err`, otherwise it raises an `UnwrapError`:
 'yay'
 >>> res2.unwrap()
 Traceback (most recent call last):
-File "<stdin>", line 1, in <module>
-File "C:\project\result\result.py", line 107, in unwrap
-    return self.expect("Called `Result.unwrap()` on an `Err` value")
-File "C:\project\result\result.py", line 101, in expect
-    raise UnwrapError(message)
-result.result.UnwrapError: Called `Result.unwrap()` on an `Err` value
+  ...
+result.result.UnwrapError: Called `Result.unwrap()` on an `Err` value: 'nay'
 >>> res1.unwrap_err()
 Traceback (most recent call last):
-...
->>>res2.unwrap_err()
+  ...
+result.result.UnwrapError: Called `Result.unwrap_err()` on an `Ok` value
+>>> res2.unwrap_err()
 'nay'
 ```
 
@@ -261,13 +268,12 @@ A custom error message can be displayed instead by using `expect` and
 'yay'
 >>> res2.expect('not ok')
 Traceback (most recent call last):
-File "<stdin>", line 1, in <module>
-File "C:\project\result\result.py", line 101, in expect
-    raise UnwrapError(message)
-result.result.UnwrapError: not ok
+  ...
+result.result.UnwrapError: not ok: 'nay'
 >>> res1.expect_err('not err')
 Traceback (most recent call last):
-...
+  ...
+result.result.UnwrapError: not err: 'yay'
 >>> res2.expect_err('not err')
 'nay'
 ```
@@ -297,6 +303,8 @@ be raised by using the `unwrap_or_raise` method instead:
 >>> res1.unwrap_or_raise(ValueError)
 'yay'
 >>> res2.unwrap_or_raise(ValueError)
+Traceback (most recent call last):
+  ...
 ValueError: nay
 ```
 
@@ -404,6 +412,13 @@ style: reach for a pipeline when the steps are a simple sequence of
 `Result`-returning functions, and for `match` when you need to branch on or
 handle each outcome.
 
+## Type checking
+
+The library is fully annotated and is checked with
+[pyrefly](https://pyrefly.org/) and [pyright](https://github.com/microsoft/pyright)
+(Pylance in strict mode). Any modern type checker should work, including
+narrowing in `match` statements and `isinstance` checks.
+
 ## Contributing
 
 Requires [uv](https://docs.astral.sh/uv/).
@@ -419,17 +434,6 @@ Requires [uv](https://docs.astral.sh/uv/).
   - Edit any relevant docstrings, markdown files
 5. Add an entry to the [changelog](./CHANGELOG.md)
 6. Git commit all your changes and create a new PR.
-
-## FAQ
-
--   **Why do I get the "Cannot infer type argument" error with MyPy?**
-
-There is [a bug in MyPy](https://github.com/python/mypy/issues/230)
-which can be triggered in some scenarios. Using `if isinstance(res, Ok)`
-instead of `if res.is_ok()` will help in some cases. Otherwise using
-[one of these
-workarounds](https://github.com/python/mypy/issues/3889#issuecomment-325997911)
-can help.
 
 ## Related Projects
 
