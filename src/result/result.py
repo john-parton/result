@@ -21,6 +21,7 @@ class Ok[T]:
     """A value that indicates success and stores arbitrary data for the result."""
 
     ok_value: T
+    """The success value."""
 
     def __init__(self, ok_value: T, /) -> None:
         object.__setattr__(self, "ok_value", ok_value)
@@ -46,8 +47,9 @@ class Ok[T]:
         """
         Return the inner value.
 
-        @deprecated Use `ok_value` or `err_value` instead. This method will be
-        removed in a future version.
+        .. deprecated:: 0.11.0
+           Use `ok_value` or `err_value` instead. This property will be
+           removed in a future version.
         """
         warn(
             "Accessing `.value` on Result type is deprecated, please use "
@@ -158,6 +160,7 @@ class Err[E]:
     """A value that signifies failure and stores arbitrary data for the error."""
 
     err_value: E
+    """The error value."""
 
     def __init__(self, err_value: E, /) -> None:
         object.__setattr__(self, "err_value", err_value)
@@ -183,8 +186,9 @@ class Err[E]:
         """
         Return the inner value.
 
-        @deprecated Use `ok_value` or `err_value` instead. This method will be
-        removed in a future version.
+        .. deprecated:: 0.11.0
+           Use `ok_value` or `err_value` instead. This property will be
+           removed in a future version.
         """
         warn(
             "Accessing `.value` on Result type is deprecated, please use "
@@ -278,19 +282,21 @@ class Err[E]:
 
 # define Result as a generic type alias for use
 # in type annotations
+type Result[T, E] = Ok[T] | Err[E]
 """
 A simple `Result` type inspired by Rust.
+
 Not all methods (https://doc.rust-lang.org/std/result/enum.Result.html)
 have been implemented, only the ones that make sense in the Python context.
 """
-type Result[T, E] = Ok[T] | Err[E]
 
+OkErr: Final = (Ok, Err)
 """
 A type to use in `isinstance` checks.
+
 This is purely for convenience sake, as you could also just write
 `isinstance(res, (Ok, Err))`.
 """
-OkErr: Final = (Ok, Err)
 
 
 class UnwrapError(Exception):

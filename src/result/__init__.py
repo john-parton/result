@@ -1,5 +1,7 @@
 """A `Result` type inspired by Rust: `Ok(value)` or `Err(error)`."""
 
+from importlib.metadata import version
+
 from .result import (
     Err,
     Ok,
@@ -15,4 +17,4 @@ __all__ = [
     "Result",
     "UnwrapError",
 ]
-__version__ = "0.18.0.dev0"
+__version__ = version("result")
