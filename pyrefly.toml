@@ -9,3 +9,10 @@ redundant-cast = "warn"
 # Bans bare `dict`/`list`/`tuple`/etc. (no type args); `dict[str, Any]` is fine
 # since its type args are explicit. Prefer TypedDict over dict[str, Any].
 implicit-any-type-argument = "error"
+
+# Lambdas passed to ignored `op` parameters on `Ok`/`Err` must still be typed
+[[sub-config]]
+matches = "tests/test_ignored_callables.py"
+
+[sub-config.errors]
+implicit-any-lambda = "error"
