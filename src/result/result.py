@@ -8,6 +8,7 @@ from typing import (
     Any,
     Final,
     Literal,
+    Never,
     NoReturn,
 )
 from warnings import warn
@@ -17,9 +18,11 @@ if TYPE_CHECKING:
 
 # Annotates parameters that `Ok` or `Err` accept but never call. Checkers infer a
 # lambda argument once per member of a `Result` union, so plain `object` leaves
-# the lambda's parameters unknown on the ignoring side. The `Callable` member
-# supplies the expected type; `object` keeps any value acceptable.
-type _IgnoredCallable = Callable[[Any], object] | object
+# the lambda's parameters unknown on the ignoring side. `Callable[[Never], ...]`
+# accepts any one-argument callable and types the lambda's parameter as `Never`,
+# which vanishes when joined with the real type; `object` keeps any value
+# acceptable.
+type _IgnoredCallable = Callable[[Never], object] | object
 
 
 @dataclass(frozen=True, slots=True, init=False)

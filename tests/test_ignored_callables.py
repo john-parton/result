@@ -10,7 +10,7 @@ check`); the calls are also run to confirm the callables are never invoked.
 
 from __future__ import annotations
 
-from typing import Any, NoReturn, assert_type
+from typing import Never, NoReturn, assert_type
 
 import pytest
 
@@ -24,21 +24,21 @@ def _boom(*_args: object) -> NoReturn:
 def test_ok_ignored_callables_infer_parameters() -> None:
     ok = Ok(1)
 
-    assert ok.unwrap_or_else(lambda e: assert_type(e, Any) and _boom()) == 1
-    assert ok.map_or_else(lambda e: assert_type(e, Any) and _boom(), str) == "1"
-    assert ok.map_err(lambda e: assert_type(e, Any) and _boom()) == ok
-    assert ok.or_else(lambda e: assert_type(e, Any) and _boom()) == ok
+    assert ok.unwrap_or_else(lambda e: assert_type(e, Never) and _boom()) == 1
+    assert ok.map_or_else(lambda e: assert_type(e, Never) and _boom(), str) == "1"
+    assert ok.map_err(lambda e: assert_type(e, Never) and _boom()) == ok
+    assert ok.or_else(lambda e: assert_type(e, Never) and _boom()) == ok
 
 
 def test_err_ignored_callables_infer_parameters() -> None:
     err = Err("x")
 
-    assert err.map(lambda v: assert_type(v, Any) and _boom()) == err
-    assert err.map_or("d", lambda v: assert_type(v, Any) and _boom()) == "d"
+    assert err.map(lambda v: assert_type(v, Never) and _boom()) == err
+    assert err.map_or("d", lambda v: assert_type(v, Never) and _boom()) == "d"
     assert (
-        err.map_or_else(lambda: "d", lambda v: assert_type(v, Any) and _boom()) == "d"
+        err.map_or_else(lambda: "d", lambda v: assert_type(v, Never) and _boom()) == "d"
     )
-    assert err.and_then(lambda v: assert_type(v, Any) and _boom()) == err
+    assert err.and_then(lambda v: assert_type(v, Never) and _boom()) == err
 
 
 @pytest.mark.asyncio
@@ -48,8 +48,8 @@ async def test_err_ignored_async_callables_infer_parameters() -> None:
     async def boom_async(*args: object) -> None:
         _boom(*args)
 
-    assert await err.map_async(lambda v: boom_async(assert_type(v, Any))) == err
-    assert await err.and_then_async(lambda v: boom_async(assert_type(v, Any))) == err
+    assert await err.map_async(lambda v: boom_async(assert_type(v, Never))) == err
+    assert await err.and_then_async(lambda v: boom_async(assert_type(v, Never))) == err
 
 
 def test_ignored_callables_accept_any_object() -> None:
