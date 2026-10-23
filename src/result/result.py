@@ -15,6 +15,12 @@ from warnings import warn
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+# Annotates parameters that `Ok` or `Err` accept but never call. Checkers infer a
+# lambda argument once per member of a `Result` union, so plain `object` leaves
+# the lambda's parameters unknown on the ignoring side. The `Callable` member
+# supplies the expected type; `object` keeps any value acceptable.
+type _IgnoredCallable = Callable[[Any], object] | object
+
 
 @dataclass(frozen=True, slots=True, init=False)
 class Ok[T]:
@@ -79,7 +85,7 @@ class Ok[T]:
         """Return the value."""
         return self.ok_value
 
-    def unwrap_or_else(self, op: object) -> T:
+    def unwrap_or_else(self, op: _IgnoredCallable) -> T:
         """Return the value."""
         return self.ok_value
 
@@ -111,7 +117,11 @@ class Ok[T]:
         """
         return op(self.ok_value)
 
-    def map_or_else[U](self, default_op: object, op: Callable[[T], U]) -> U:
+    def map_or_else[U](
+        self,
+        default_op: _IgnoredCallable,
+        op: Callable[[T], U],
+    ) -> U:
         """
         Return the value mapped through `op`, ignoring `default_op`.
 
@@ -119,7 +129,7 @@ class Ok[T]:
         """
         return op(self.ok_value)
 
-    def map_err(self, op: object) -> Ok[T]:
+    def map_err(self, op: _IgnoredCallable) -> Ok[T]:
         """Return `Ok` with the original value; `op` is not called."""
         return self
 
@@ -141,7 +151,7 @@ class Ok[T]:
         """
         return await op(self.ok_value)
 
-    def or_else(self, op: object) -> Ok[T]:
+    def or_else(self, op: _IgnoredCallable) -> Ok[T]:
         """Return `Ok` with the original value; `op` is not called."""
         return self
 
@@ -238,19 +248,19 @@ class Err[E]:
         """Raise the exception `e`, constructed from the error value."""
         raise e(self.err_value)
 
-    def map(self, op: object) -> Err[E]:
+    def map(self, op: _IgnoredCallable) -> Err[E]:
         """Return `Err` with the same value."""
         return self
 
-    async def map_async(self, op: object) -> Err[E]:
+    async def map_async(self, op: _IgnoredCallable) -> Err[E]:
         """Return `Err` with the same value; `op` is not called."""
         return self
 
-    def map_or[U](self, default: U, op: object) -> U:
+    def map_or[U](self, default: U, op: _IgnoredCallable) -> U:
         """Return the default value."""
         return default
 
-    def map_or_else[U](self, default_op: Callable[[], U], op: object) -> U:
+    def map_or_else[U](self, default_op: Callable[[], U], op: _IgnoredCallable) -> U:
         """Return the result of the default operation."""
         return default_op()
 
@@ -258,11 +268,11 @@ class Err[E]:
         """Return `Err` with the error value mapped through `op`."""
         return Err(op(self.err_value))
 
-    def and_then(self, op: object) -> Err[E]:
+    def and_then(self, op: _IgnoredCallable) -> Err[E]:
         """Return `Err` with the original value; `op` is not called."""
         return self
 
-    async def and_then_async(self, op: object) -> Err[E]:
+    async def and_then_async(self, op: _IgnoredCallable) -> Err[E]:
         """Return `Err` with the original value; `op` is not called."""
         return self
 

@@ -13,6 +13,13 @@ Possible log types:
 
 ## [Unreleased]
 
+- `[fixed]` Lambdas passed to methods on a `Result` (for example
+  `result.map(lambda v: ...)`) no longer have unknown parameter types on the
+  `Ok`/`Err` side that ignores them, which strict checkers reported
+  (pyright `reportUnknownLambdaType`, pyrefly `implicit-any-lambda`). Ignored
+  `op` parameters are now typed `Callable[[Any], object] | object`, so
+  `Err("x").map(42)` is still accepted
+
 ## [0.18.0] - 2026-10-20
 
 First release of the [john-parton/result](https://github.com/john-parton/result)
