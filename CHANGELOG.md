@@ -13,6 +13,8 @@ Possible log types:
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-22
+
 - `[fixed]` Lambdas passed to methods on a `Result` (for example
   `result.map(lambda v: ...)`) no longer have unknown parameter types on the
   `Ok`/`Err` side that ignores them, which strict checkers reported
@@ -185,7 +187,8 @@ codebase.
  - Initial version
 
 [MIGRATING.md]: https://github.com/rustedpy/result/blob/main/MIGRATING.md
-[Unreleased]: https://github.com/john-parton/result/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/john-parton/result/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/john-parton/result/releases/tag/v0.19.0
 [0.18.0]: https://github.com/john-parton/result/releases/tag/v0.18.0
 [0.17.0]: https://github.com/rustedpy/result/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/rustedpy/result/compare/v0.16.0...v0.16.1

@@ -70,29 +70,29 @@ Migrating from upstream:
 This fork is not published to PyPI: `pip install result` installs the
 unmaintained upstream package, not this fork. Install a tagged release from
 GitHub instead. The latest release is
-[v0.18.0](https://github.com/john-parton/result/releases/tag/v0.18.0).
+[v0.19.0](https://github.com/john-parton/result/releases/tag/v0.19.0).
 
 ``` sh
-$ pip install "git+https://github.com/john-parton/result@v0.18.0"
+$ pip install "git+https://github.com/john-parton/result@v0.19.0"
 ```
 
 or, with [uv](https://docs.astral.sh/uv/):
 
 ``` sh
-$ uv add git+https://github.com/john-parton/result --tag v0.18.0
+$ uv add git+https://github.com/john-parton/result --tag v0.19.0
 ```
 
 To depend on it from another project's `pyproject.toml`:
 
 ``` toml
-dependencies = ["result @ git+https://github.com/john-parton/result@v0.18.0"]
+dependencies = ["result @ git+https://github.com/john-parton/result@v0.19.0"]
 ```
 
 Each [release](https://github.com/john-parton/result/releases) also has the
 built wheel attached, which can be installed directly without cloning:
 
 ``` sh
-$ pip install https://github.com/john-parton/result/releases/download/v0.18.0/result-0.18.0-py3-none-any.whl
+$ pip install https://github.com/john-parton/result/releases/download/v0.19.0/result-0.19.0-py3-none-any.whl
 ```
 
 ## Summary
